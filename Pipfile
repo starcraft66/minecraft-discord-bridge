@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[dev-packages]
+
+[packages]
+pycraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
+minecraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
+requests = "*"
+cryptography = "*"
+future = "*"
+
+[requires]
+python_version = "3.6"
