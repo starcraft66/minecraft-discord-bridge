@@ -130,7 +130,7 @@ def main():
                 player_uuid = UUID_CACHE[username]
             print("Username: {} Message: {}".format(username, message))
             webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-                'content': '{}'.format(message)}
+                'embeds': [{'title': '{}'.format(message)}]}
             post = requests.post(WEBHOOK_URL,json=webhook_payload)        
 
     connection.register_packet_listener(
@@ -156,4 +156,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except:
+        sys.exit()
