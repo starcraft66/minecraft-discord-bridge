@@ -149,32 +149,15 @@ def main():
 
     @discord_bot.event
     async def on_ready():
-        print('Logged in as')
-        print(discord_bot.user.name)
-        print(discord_bot.user.id)
-        print('------')
+        print("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
 
     @discord_bot.event
     async def on_message(message):
-        if message.content.startswith('!test'):
-            counter = 0
-            tmp = await discord_bot.send_message(message.channel, 'Calculating messages...')
-            async for log in discord_bot.logs_from(message.channel, limit=100):
-                if log.author == message.author:
-                    counter += 1
-
-            await discord_bot.edit_message(tmp, 'You have {} messages.'.format(counter))
-        elif message.content.startswith('!sleep'):
-            await asyncio.sleep(5)
-            await discord_bot.send_message(message.channel, 'Done sleeping')
-
-        else:
-            print(message.author.name)
-            if not message.author.bot:
-                await discord_bot.delete_message(message)
-                packet = serverbound.play.ChatPacket()
-                packet.message = "{}: {}".format(message.author.name, message.content)
-                connection.write_packet(packet)
+        if not message.author.bot:
+            await discord_bot.delete_message(message)
+            packet = serverbound.play.ChatPacket()
+            packet.message = "{}: {}".format(message.author.name, message.content)
+            connection.write_packet(packet)
 
     discord_bot.run(options.discord_token)
 
