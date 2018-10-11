@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "c36c9f342620f87cb95fb3b03c8315938b7170acf71d107c43e1840d5dd70aa7"
+            "sha256": "32ddb27c51c3258cd2abbf1de5432269e16fdced75a4b251ca3a1ed8d62c0cfb"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -65,7 +65,6 @@
                 "sha256:edabd457cd23a02965166026fd9bfd196f4324fe6032e866d0f3bd0301cd486f",
                 "sha256:fdf1c1dc5bafc32bc5d08b054f94d659422b05aba244d6be4ddc1c72d9aa70fb"
             ],
-            "markers": "python_version != '3.1.*' and python_version != '3.3.*' and python_version != '3.2.*' and python_version != '3.0.*' and python_version >= '2.7'",
             "version": "==1.11.5"
         },
         "chardet": {
@@ -100,6 +99,9 @@
             "index": "pypi",
             "version": "==2.3.1"
         },
+        "discord.py": {
+            "git": "https://github.com/Rapptz/discord.py.git"
+        },
         "future": {
             "hashes": [
                 "sha256:e39ced1ab767b5936646cedba8bcce582398233d6a627067d4c6a454c90cfedb"
@@ -115,19 +117,16 @@
             "version": "==2.7"
         },
         "minecraft": {
-            "git": "https://github.com/ammaraskar/pyCraft.git",
-            "ref": "eb302094aa7357141e5f6b9f0cc252204890fbd3"
+            "git": "https://github.com/ammaraskar/pyCraft.git"
         },
         "pycparser": {
             "hashes": [
                 "sha256:a988718abfad80b6b157acce7bf130a30876d27603738ac39f140993246b25b3"
             ],
-            "markers": "python_version != '3.1.*' and python_version != '3.3.*' and python_version != '3.2.*' and python_version != '3.0.*' and python_version >= '2.7'",
             "version": "==2.19"
         },
         "pycraft": {
-            "git": "https://github.com/ammaraskar/pyCraft.git",
-            "ref": "eb302094aa7357141e5f6b9f0cc252204890fbd3"
+            "git": "https://github.com/ammaraskar/pyCraft.git"
         },
         "requests": {
             "hashes": [
@@ -149,7 +148,6 @@
                 "sha256:a68ac5e15e76e7e5dd2b8f94007233e01effe3e50e8daddf69acfd81cb686baf",
                 "sha256:b5725a0bd4ba422ab0e66e89e030c806576753ea3ee08554382c14e685d117b5"
             ],
-            "markers": "python_version != '3.0.*' and python_version != '3.1.*' and python_version != '3.3.*' and python_version != '3.2.*' and python_version >= '2.6' and python_version < '4'",
             "version": "==1.23"
         }
     },

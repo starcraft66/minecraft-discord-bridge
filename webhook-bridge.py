@@ -15,6 +15,9 @@ from minecraft.networking.connection import Connection
 from minecraft.networking.packets import Packet, clientbound, serverbound
 from minecraft.compat import input
 
+import discord
+import asyncio
+
 UUID_CACHE = {}
 
 def get_options():
@@ -33,6 +36,9 @@ def get_options():
     parser.add_option("-o", "--offline", dest="offline", action="store_true",
                       help="connect to a server in offline mode "
                            "(no password required)")
+
+    parser.add_option("-t", "--token", dest="discord_token", default=None,
+                      help="discord token to log the bot in with")
 
     (options, args) = parser.parse_args()
 
@@ -80,6 +86,9 @@ def main():
         print("Logged in as %s..." % auth_token.username)
         connection = Connection(
             options.address, options.port, auth_token=auth_token)
+
+    #Initialize the discord part
+    discord_bot = discord.Client()
 
     def handle_join_game(join_game_packet):
         print('Connected.')
@@ -138,6 +147,37 @@ def main():
 
     connection.connect()
 
+    @discord_bot.event
+    async def on_ready():
+        print('Logged in as')
+        print(discord_bot.user.name)
+        print(discord_bot.user.id)
+        print('------')
+
+    @discord_bot.event
+    async def on_message(message):
+        if message.content.startswith('!test'):
+            counter = 0
+            tmp = await discord_bot.send_message(message.channel, 'Calculating messages...')
+            async for log in discord_bot.logs_from(message.channel, limit=100):
+                if log.author == message.author:
+                    counter += 1
+
+            await discord_bot.edit_message(tmp, 'You have {} messages.'.format(counter))
+        elif message.content.startswith('!sleep'):
+            await asyncio.sleep(5)
+            await discord_bot.send_message(message.channel, 'Done sleeping')
+
+        else:
+            print(message.author.name)
+            if not message.author.bot:
+                await discord_bot.delete_message(message)
+                packet = serverbound.play.ChatPacket()
+                packet.message = "{}: {}".format(message.author.name, message.content)
+                connection.write_packet(packet)
+
+    discord_bot.run(options.discord_token)
+
     while True:
         try:
             text = input()
@@ -153,10 +193,8 @@ def main():
         except KeyboardInterrupt:
             print("Bye!")
             sys.exit()
-
+ 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except:
-        sys.exit()
+    main()
+    

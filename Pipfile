@@ -11,6 +11,7 @@ minecraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
 requests = "*"
 cryptography = "*"
 future = "*"
+"discord.py" = {git = "https://github.com/Rapptz/discord.py.git"}
 
 [requires]
 python_version = "3.6"
