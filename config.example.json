@@ -1,5 +1,8 @@
 {
     "MAIN": {
         "WEBHOOK_URL": ""
+    },
+    "DATABASE": {
+        "CONNECTION_STRING": ""
     }
 }

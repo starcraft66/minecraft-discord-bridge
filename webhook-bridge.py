@@ -9,6 +9,8 @@ import requests
 import json
 from optparse import OptionParser
 from config import Configuration
+from database import DiscordChannel
+import database_session
 
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
@@ -71,6 +73,8 @@ def main():
     config = Configuration("config.json")
 
     WEBHOOK_URL = config.webhook_url
+
+    database_session.initialize(config)
 
     if options.offline:
         print("Connecting in offline mode...")
@@ -153,7 +157,41 @@ def main():
 
     @discord_bot.event
     async def on_message(message):
-        if not message.author.bot:
+        this_channel = message.channel.id
+        if message.content.startswith("mc!chathere"):
+            session = database_session.get_session()
+            channels = session.query(DiscordChannel).filter_by(channel_id=this_channel).all()
+            print(channels)
+            if not channels:
+                new_channel = DiscordChannel(this_channel)
+                session.add(new_channel)
+                session.commit()
+                session.close()
+                del session
+                msg = "The bot will now start chatting here! To stop this, run `mc!stopchathere`."
+                await discord_bot.send_message(message.channel, msg)
+            else:
+                msg = "The bot is already chatting in this channel! To stop this, run `mc!stopchathere`."
+                await discord_bot.send_message(message.channel, msg)
+                return
+
+        elif message.content.startswith("mc!stopchathere"):
+            session = database_session.get_session()
+            channels = session.query(DiscordChannel).all()
+            deleted = session.query(DiscordChannel).filter_by(channel_id=this_channel).delete()
+            session.commit()
+            session.close()
+            print(deleted)
+            if deleted < 1:
+                msg = "The bot was not chatting here!"
+                await discord_bot.send_message(message.channel, msg)
+                return
+            else:
+                msg = "The bot will no longer here!"
+                await discord_bot.send_message(message.channel, msg)
+                return
+            
+        elif not message.author.bot:
             await discord_bot.delete_message(message)
             packet = serverbound.play.ChatPacket()
             packet.message = "{}: {}".format(message.author.name, message.content)
