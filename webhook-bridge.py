@@ -144,10 +144,21 @@ def main():
             print("Username: {} Message: {}".format(username, message))
             webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                 'embeds': [{'title': '{}'.format(message)}]}
-            post = requests.post(WEBHOOK_URL,json=webhook_payload)        
+            post = requests.post(WEBHOOK_URL,json=webhook_payload)
 
     connection.register_packet_listener(
         print_chat, clientbound.play.ChatMessagePacket)
+
+    def handle_health_update(health_update_packet):
+        if health_update_packet.health <= 0:
+            #We need to respawn!!!!
+            print("Respawned the player because it died!")
+            packet = serverbound.play.ClientStatusPacket()
+            packet.action_id = serverbound.play.ClientStatusPacket.RESPAWN
+            connection.write_packet(packet)
+
+    connection.register_packet_listener(
+        handle_health_update, clientbound.play.UpdateHealthPacket)
 
     connection.connect()
 
