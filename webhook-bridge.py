@@ -77,24 +77,6 @@ def main():
 
     database_session.initialize(config)
 
-    if options.offline:
-        print("Connecting in offline mode...")
-        connection = Connection(
-            options.address, options.port, username=options.username)
-    else:
-        auth_token = authentication.AuthenticationToken()
-        try:
-            auth_token.authenticate(options.username, options.password)
-        except YggdrasilError as e:
-            print(e)
-            sys.exit()
-        print("Logged in as %s..." % auth_token.username)
-        connection = Connection(
-            options.address, options.port, auth_token=auth_token)
-
-    #Initialize the discord part
-    discord_bot = discord.Client()
-
     def handle_disconnect(join_game_packet):
         print('Disconnected.')
         nonlocal connection
@@ -104,7 +86,8 @@ def main():
         if options.offline:
             print("Connecting in offline mode...")
             connection = Connection(
-                options.address, options.port, username=options.username)
+                options.address, options.port, username=options.username,
+                handle_exception=handle_disconnect)
         else:
             auth_token = authentication.AuthenticationToken()
             try:
@@ -114,9 +97,30 @@ def main():
                 sys.exit()
             print("Logged in as %s..." % auth_token.username)
             connection = Connection(
-                options.address, options.port, auth_token=auth_token)
+                options.address, options.port, auth_token=auth_token,
+                handle_exception=handle_disconnect)
         register_handlers(connection)
         connection.connect()
+
+    if options.offline:
+        print("Connecting in offline mode...")
+        connection = Connection(
+            options.address, options.port, username=options.username,
+            handle_exception=handle_disconnect)
+    else:
+        auth_token = authentication.AuthenticationToken()
+        try:
+            auth_token.authenticate(options.username, options.password)
+        except YggdrasilError as e:
+            print(e)
+            sys.exit()
+        print("Logged in as %s..." % auth_token.username)
+        connection = Connection(
+            options.address, options.port, auth_token=auth_token,
+            handle_exception=handle_disconnect)
+
+    #Initialize the discord part
+    discord_bot = discord.Client()
 
     def register_handlers(connection):
         connection.register_packet_listener(
