@@ -8,6 +8,7 @@ import re
 import requests
 import json
 from optparse import OptionParser
+from config import Configuration
 
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
@@ -67,10 +68,9 @@ def get_options():
 def main():
     options = get_options()
 
-    with open('config.json', 'r') as f:
-        _config = json.load(f)
+    config = Configuration("config.json")
 
-    WEBHOOK_URL = _config["MAIN"]["WEBHOOK_URL"]
+    WEBHOOK_URL = config.webhook_url
 
     if options.offline:
         print("Connecting in offline mode...")
