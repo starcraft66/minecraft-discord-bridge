@@ -7,6 +7,7 @@ import sys
 import re
 import requests
 import json
+import time
 from optparse import OptionParser
 from config import Configuration
 from database import DiscordChannel
@@ -94,11 +95,45 @@ def main():
     #Initialize the discord part
     discord_bot = discord.Client()
 
+    def handle_disconnect(join_game_packet):
+        print('Disconnected.')
+        nonlocal connection
+        connection.disconnect(immediate=True)
+        time.sleep(5)
+        print('Reconnecting.')
+        if options.offline:
+            print("Connecting in offline mode...")
+            connection = Connection(
+                options.address, options.port, username=options.username)
+        else:
+            auth_token = authentication.AuthenticationToken()
+            try:
+                auth_token.authenticate(options.username, options.password)
+            except YggdrasilError as e:
+                print(e)
+                sys.exit()
+            print("Logged in as %s..." % auth_token.username)
+            connection = Connection(
+                options.address, options.port, auth_token=auth_token)
+        register_handlers(connection)
+        connection.connect()
+
+    def register_handlers(connection):
+        connection.register_packet_listener(
+        handle_join_game, clientbound.play.JoinGamePacket)
+
+        connection.register_packet_listener(
+        print_chat, clientbound.play.ChatMessagePacket)
+
+        connection.register_packet_listener(
+        handle_health_update, clientbound.play.UpdateHealthPacket)
+
+        connection.register_packet_listener(
+        handle_disconnect, clientbound.play.DisconnectPacket)
+
+
     def handle_join_game(join_game_packet):
         print('Connected.')
-
-    connection.register_packet_listener(
-        handle_join_game, clientbound.play.JoinGamePacket)
 
     def print_chat(chat_packet):
 
@@ -144,10 +179,7 @@ def main():
             print("Username: {} Message: {}".format(username, message))
             webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                 'embeds': [{'title': '{}'.format(message)}]}
-            post = requests.post(WEBHOOK_URL,json=webhook_payload)
-
-    connection.register_packet_listener(
-        print_chat, clientbound.play.ChatMessagePacket)
+            post = requests.post(WEBHOOK_URL,json=webhook_payload)    
 
     def handle_health_update(health_update_packet):
         if health_update_packet.health <= 0:
@@ -157,8 +189,7 @@ def main():
             packet.action_id = serverbound.play.ClientStatusPacket.RESPAWN
             connection.write_packet(packet)
 
-    connection.register_packet_listener(
-        handle_health_update, clientbound.play.UpdateHealthPacket)
+    register_handlers(connection)
 
     connection.connect()
 
