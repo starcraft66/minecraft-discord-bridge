@@ -112,9 +112,16 @@ def main():
             username = regexp_match.group(1)
             status = regexp_match.group(2)
             if username not in UUID_CACHE:
+                # Shouldn't happen anymore since the tab list packet sends us uuids
+                logging.debug("Got chat message from player {}, their UUID was not cached so it is being looked up via the Mojang API.".format(username))
+                try:
                 player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
                 UUID_CACHE[username] = player_uuid
+                except:
+                    logging.error("Failed to lookup {}'s UUID using the Mojang API.")
+                    return
             else:
+                logging.debug("Got chat message from player {}, not looking up their UUID because it is already cached as {}.".format(username, UUID_CACHE[username]))
                 player_uuid = UUID_CACHE[username]
             if status == "joined":
                 webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
@@ -135,8 +142,12 @@ def main():
             if username not in UUID_CACHE:
                 # Shouldn't happen anymore since the tab list packet sends us uuids
                 logging.debug("Got chat message from player {}, their UUID was not cached so it is being looked up via the Mojang API.".format(username))
+                try:
                 player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
                 UUID_CACHE[username] = player_uuid
+                except:
+                    logging.error("Failed to lookup {}'s UUID using the Mojang API.")
+                    return
             else:
                 logging.debug("Got chat message from player {}, not looking up their UUID because it is already cached as {}.".format(username, UUID_CACHE[username]))
                 player_uuid = UUID_CACHE[username]
