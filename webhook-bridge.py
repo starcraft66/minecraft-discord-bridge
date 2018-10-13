@@ -23,6 +23,8 @@ from minecraft.compat import input
 import discord
 import asyncio
 
+from mcstatus import MinecraftServer
+
 UUID_CACHE = {}
 
 def setup_logging(level):
@@ -47,12 +49,29 @@ def main():
     def handle_disconnect(join_game_packet):
         logging.info('Disconnected.')
         connection.disconnect(immediate=True)
-        time.sleep(5)
+        while not is_server_online():
+            logging.info('Not reconnecting to server because it appears to be offline.')
+            time.sleep(5)
         logging.info('Reconnecting.')
         connection.connect()
 
+    def is_server_online():
+        server = MinecraftServer.lookup("{}:{}".format(config.mc_server, config.mc_port))
+        try:
+            status = server.status()
+            del status
+            return True
+        except:
+            # The server is offline
+            return False
+
+    logging.debug("Checking if the server {} is online before connecting.")
+
     if not config.mc_online:
         logging.info("Connecting in offline mode...")
+        if not is_server_online():
+            logging.info('Not connecting to server because it appears to be offline.')
+            sys.exit(1)
         connection = Connection(
             config.mc_server, config.mc_port, username=config.mc_username,
             handle_exception=handle_disconnect)
@@ -64,6 +83,9 @@ def main():
             logging.info(e)
             sys.exit()
         logging.info("Logged in as %s..." % auth_token.username)
+        if not is_server_online():
+            logging.info('Not connecting to server because it appears to be offline.')
+            sys.exit(1)
         connection = Connection(
             config.mc_server, config.mc_port, auth_token=auth_token,
             handle_exception=handle_disconnect)

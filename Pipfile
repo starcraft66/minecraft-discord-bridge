@@ -13,6 +13,7 @@ cryptography = "*"
 future = "*"
 "discord.py" = {git = "https://github.com/Rapptz/discord.py.git"}
 sqlalchemy = "*"
+mcstatus = "*"
 
 [requires]
 python_version = "3.6"
