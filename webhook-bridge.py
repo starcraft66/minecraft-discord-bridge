@@ -31,7 +31,7 @@ def setup_logging(level):
     else:
         log_level = logging.INFO
     log_format = "%(asctime)s:%(levelname)s:%(message)s"
-    logger = logging.basicConfig(filename="bridge_log.log", format=log_format, level=log_level)
+    logging.basicConfig(filename="bridge_log.log", format=log_format, level=log_level)
     stdout_logger=logging.StreamHandler(sys.stdout)
     stdout_logger.setFormatter(logging.Formatter(log_format))
     logging.getLogger().addHandler(stdout_logger)
