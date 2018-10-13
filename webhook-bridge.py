@@ -159,7 +159,7 @@ def main():
     def handle_health_update(health_update_packet):
         if health_update_packet.health <= 0:
             #We need to respawn!!!!
-            logging.info("Respawned the player because it died!")
+            logging.debug("Respawned the player because it died")
             packet = serverbound.play.ClientStatusPacket()
             packet.action_id = serverbound.play.ClientStatusPacket.RESPAWN
             connection.write_packet(packet)
