@@ -1,8 +1,14 @@
 {
     "MAIN": {
-        "WEBHOOK_URL": ""
+        "WEBHOOK_URL": "",
+        "MC_USERNAME": "",
+        "MC_PASSWORD": "",
+        "MC_SERVER": "",
+        "MC_PORT": 25565,
+        "MC_ONLINE": true,
+        "DISCORD_APP_TOKEN": ""
     },
     "DATABASE": {
-        "CONNECTION_STRING": ""
+        "CONNECTION_STRING": "sqlite:////data/db.sqlite"
     }
 }

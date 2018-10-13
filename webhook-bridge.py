@@ -24,53 +24,7 @@ import asyncio
 
 UUID_CACHE = {}
 
-def get_options():
-    parser = OptionParser()
-
-    parser.add_option("-u", "--username", dest="username", default=None,
-                      help="username to log in with")
-
-    parser.add_option("-p", "--password", dest="password", default=None,
-                      help="password to log in with")
-
-    parser.add_option("-s", "--server", dest="server", default=None,
-                      help="server host or host:port "
-                           "(enclose IPv6 addresses in square brackets)")
-
-    parser.add_option("-o", "--offline", dest="offline", action="store_true",
-                      help="connect to a server in offline mode "
-                           "(no password required)")
-
-    parser.add_option("-t", "--token", dest="discord_token", default=None,
-                      help="discord token to log the bot in with")
-
-    (options, args) = parser.parse_args()
-
-    if not options.username:
-        options.username = input("Enter your username: ")
-
-    if not options.password and not options.offline:
-        options.password = getpass.getpass("Enter your password (leave "
-                                           "blank for offline mode): ")
-        options.offline = options.offline or (options.password == "")
-
-    if not options.server:
-        options.server = input("Enter server host or host:port "
-                               "(enclose IPv6 addresses in square brackets): ")
-    # Try to split out port and address
-    match = re.match(r"((?P<host>[^\[\]:]+)|\[(?P<addr>[^\[\]]+)\])"
-                     r"(:(?P<port>\d+))?$", options.server)
-    if match is None:
-        raise ValueError("Invalid server address: '%s'." % options.server)
-    options.address = match.group("host") or match.group("addr")
-    options.port = int(match.group("port") or 25565)
-
-    return options
-
-
 def main():
-    options = get_options()
-
     config = Configuration("config.json")
 
     WEBHOOK_URL = config.webhook_url
@@ -83,40 +37,40 @@ def main():
         connection.disconnect(immediate=True)
         time.sleep(5)
         print('Reconnecting.')
-        if options.offline:
+        if not config.mc_online:
             print("Connecting in offline mode...")
             connection = Connection(
-                options.address, options.port, username=options.username,
+                config.mc_server, config.mc_port, username=config.mc_username,
                 handle_exception=handle_disconnect)
         else:
             auth_token = authentication.AuthenticationToken()
             try:
-                auth_token.authenticate(options.username, options.password)
+                auth_token.authenticate(config.mc_username, config.mc_password)
             except YggdrasilError as e:
                 print(e)
                 sys.exit()
             print("Logged in as %s..." % auth_token.username)
             connection = Connection(
-                options.address, options.port, auth_token=auth_token,
+                config.mc_server, config.mc_port, auth_token=auth_token,
                 handle_exception=handle_disconnect)
         register_handlers(connection)
         connection.connect()
 
-    if options.offline:
+    if not config.mc_online:
         print("Connecting in offline mode...")
         connection = Connection(
-            options.address, options.port, username=options.username,
+            config.mc_server, config.mc_port, username=config.mc_username,
             handle_exception=handle_disconnect)
     else:
         auth_token = authentication.AuthenticationToken()
         try:
-            auth_token.authenticate(options.username, options.password)
+            auth_token.authenticate(config.mc_username, config.mc_password)
         except YggdrasilError as e:
             print(e)
             sys.exit()
         print("Logged in as %s..." % auth_token.username)
         connection = Connection(
-            options.address, options.port, auth_token=auth_token,
+            config.mc_server, config.mc_port, auth_token=auth_token,
             handle_exception=handle_disconnect)
 
     #Initialize the discord part
@@ -124,16 +78,16 @@ def main():
 
     def register_handlers(connection):
         connection.register_packet_listener(
-        handle_join_game, clientbound.play.JoinGamePacket)
+            handle_join_game, clientbound.play.JoinGamePacket)
 
         connection.register_packet_listener(
-        print_chat, clientbound.play.ChatMessagePacket)
+            print_chat, clientbound.play.ChatMessagePacket)
 
         connection.register_packet_listener(
-        handle_health_update, clientbound.play.UpdateHealthPacket)
+            handle_health_update, clientbound.play.UpdateHealthPacket)
 
         connection.register_packet_listener(
-        handle_disconnect, clientbound.play.DisconnectPacket)
+            handle_disconnect, clientbound.play.DisconnectPacket)
 
 
     def handle_join_game(join_game_packet):
@@ -243,7 +197,7 @@ def main():
             packet.message = "{}: {}".format(message.author.name, message.content)
             connection.write_packet(packet)
 
-    discord_bot.run(options.discord_token)
+    discord_bot.run(config.discord_token)
 
     while True:
         try:
