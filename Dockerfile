@@ -1,5 +1,7 @@
 FROM python:3.6.6-stretch
 
+ENV PYTHONUNBUFFERED=0
+
 WORKDIR /app
 
 COPY . /app
