@@ -110,11 +110,18 @@ def main():
             handle_tab_list, clientbound.play.PlayerListItemPacket)
 
     def handle_tab_list(tab_list_packet):
+        logging.debug("Processing tab list packet")
         for action in tab_list_packet.actions:
             if isinstance(action, clientbound.play.PlayerListItemPacket.AddPlayerAction):
-               UUID_CACHE[action.name] = action.uuid
+                logging.debug("Processing AddPlayerAction tab list packet, name: {}, uuid: {}".format(action.name, action.uuid))
+                if action.name not in UUID_CACHE:
+                    UUID_CACHE[action.name] = action.uuid
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
-               del UUID_CACHE[action.name]
+                logging.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
+                for username in UUID_CACHE:
+                    if UUID_CACHE[username] == action.uuid:
+                        del UUID_CACHE[username]
+                        break
 
     def handle_join_game(join_game_packet):
         logging.info('Connected.')
