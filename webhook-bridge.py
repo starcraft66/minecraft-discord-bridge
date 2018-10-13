@@ -71,6 +71,15 @@ def main():
         connection.register_packet_listener(
             handle_disconnect, clientbound.play.DisconnectPacket)
 
+        connection.register_packet_listener(
+            handle_tab_list, clientbound.play.PlayerListItemPacket)
+
+    def handle_tab_list(tab_list_packet):
+        for action in tab_list_packet.actions:
+            if isinstance(action, clientbound.play.PlayerListItemPacket.AddPlayerAction):
+               UUID_CACHE[action.name] = action.uuid
+            if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
+               del UUID_CACHE[action.name]
 
     def handle_join_game(join_game_packet):
         print('Connected.')
@@ -112,6 +121,7 @@ def main():
             username = regexp_match.group(1)
             message = regexp_match.group(2)
             if username not in UUID_CACHE:
+                # Shouldn't happen anymore since the tab list packet sends us uuids
                 player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
                 UUID_CACHE[username] = player_uuid
             else:
