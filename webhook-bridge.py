@@ -33,27 +33,9 @@ def main():
 
     def handle_disconnect(join_game_packet):
         print('Disconnected.')
-        nonlocal connection
         connection.disconnect(immediate=True)
         time.sleep(5)
         print('Reconnecting.')
-        if not config.mc_online:
-            print("Connecting in offline mode...")
-            connection = Connection(
-                config.mc_server, config.mc_port, username=config.mc_username,
-                handle_exception=handle_disconnect)
-        else:
-            auth_token = authentication.AuthenticationToken()
-            try:
-                auth_token.authenticate(config.mc_username, config.mc_password)
-            except YggdrasilError as e:
-                print(e)
-                sys.exit()
-            print("Logged in as %s..." % auth_token.username)
-            connection = Connection(
-                config.mc_server, config.mc_port, auth_token=auth_token,
-                handle_exception=handle_disconnect)
-        register_handlers(connection)
         connection.connect()
 
     if not config.mc_online:
