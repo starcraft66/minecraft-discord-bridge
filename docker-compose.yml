@@ -2,6 +2,8 @@ version: '2.3'
 services:
   webhook-bridge:
     build: .
+    ports:
+      - 9822:9822
     volumes:
       - ./:/app:Z
       - ./:/data:Z

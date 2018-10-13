@@ -9,6 +9,11 @@
         "DISCORD_APP_TOKEN": "",
         "LOG_LEVEL": "INFO"
     },
+    "AUTH_SERVER": {
+        "BIND_IP": "",
+        "PORT": 9822,
+        "DNS_WILDCARD": ""
+    },
     "DATABASE": {
         "CONNECTION_STRING": "sqlite:////data/db.sqlite"
     }

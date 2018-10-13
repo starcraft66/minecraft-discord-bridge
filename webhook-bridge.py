@@ -9,9 +9,12 @@ import requests
 import json
 import time
 import logging
+import random
+import string
+from threading import Thread
 from optparse import OptionParser
 from config import Configuration
-from database import DiscordChannel
+from database import DiscordChannel, AccountLinkToken, MinecraftAccount, DiscordAccount
 import database_session
 
 from minecraft import authentication
@@ -38,6 +41,31 @@ def setup_logging(level):
     stdout_logger.setFormatter(logging.Formatter(log_format))
     logging.getLogger().addHandler(stdout_logger)
 
+
+def run_auth_server(port):
+    # We need to import twisted after setting up the logger because twisted hijacks our logging
+    # TODO: Fix this in a cleaner way
+    from twisted.internet import reactor
+    from auth_server import AuthFactory, AuthProtocol
+
+    # Create factory
+    factory = AuthFactory()
+
+    # Listen
+    logging.info("Starting authentication server on port {}".format(port))
+
+    factory.listen("", port)
+    try:
+        reactor.run(installSignalHandlers=False)
+    except KeyboardInterrupt:
+        reactor.stop()
+
+
+def generate_random_auth_token(length):
+    letters = string.ascii_lowercase + string.digits + string.ascii_uppercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+
 def main():
     config = Configuration("config.json")
     setup_logging(config.logging_level)
@@ -45,6 +73,9 @@ def main():
     WEBHOOK_URL = config.webhook_url
 
     database_session.initialize(config)
+
+    reactor_thread = Thread(target=run_auth_server, args=(config.auth_port,))
+    reactor_thread.start()
 
     def handle_disconnect(join_game_packet):
         logging.info('Disconnected.')
@@ -82,6 +113,8 @@ def main():
         except YggdrasilError as e:
             logging.info(e)
             sys.exit()
+        global BOT_USERNAME
+        BOT_USERNAME = auth_token.username
         logging.info("Logged in as %s..." % auth_token.username)
         if not is_server_online():
             logging.info('Not connecting to server because it appears to be offline.')
@@ -203,7 +236,33 @@ def main():
 
     @discord_bot.event
     async def on_message(message):
+        # We do not want the bot to reply to itself
+        if message.author == discord_bot.user:
+            return
         this_channel = message.channel.id
+        if message.channel.is_private:
+            if message.content.startswith("mc!register"):
+                session = database_session.get_session()
+                discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
+                if not discord_account:
+                    new_discord_account = DiscordAccount(message.author.id)
+                    session.add(new_discord_account)
+                    session.commit()
+                    discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
+
+                new_token = generate_random_auth_token(16)
+                account_link_token = AccountLinkToken(message.author.id, new_token)
+                discord_account.link_token = account_link_token
+                session.add(account_link_token)
+                session.commit()
+                msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!".format(new_token, config.auth_dns, config.auth_port)
+                await discord_bot.send_message(message.channel, msg)
+                session.close()
+                return
+            else:
+                msg = "Unknown command, type `mc!help` for a list of commands."
+                await discord_bot.send_message(message.channel, msg)
+                return
         if message.content.startswith("mc!chathere"):
             session = database_session.get_session()
             channels = session.query(DiscordChannel).filter_by(channel_id=this_channel).all()
