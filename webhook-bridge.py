@@ -115,8 +115,8 @@ def main():
                 # Shouldn't happen anymore since the tab list packet sends us uuids
                 logging.debug("Got chat message from player {}, their UUID was not cached so it is being looked up via the Mojang API.".format(username))
                 try:
-                player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
-                UUID_CACHE[username] = player_uuid
+                    player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
+                    UUID_CACHE[username] = player_uuid
                 except:
                     logging.error("Failed to lookup {}'s UUID using the Mojang API.")
                     return
@@ -143,8 +143,8 @@ def main():
                 # Shouldn't happen anymore since the tab list packet sends us uuids
                 logging.debug("Got chat message from player {}, their UUID was not cached so it is being looked up via the Mojang API.".format(username))
                 try:
-                player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
-                UUID_CACHE[username] = player_uuid
+                    player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
+                    UUID_CACHE[username] = player_uuid
                 except:
                     logging.error("Failed to lookup {}'s UUID using the Mojang API.")
                     return
