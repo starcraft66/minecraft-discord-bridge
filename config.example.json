@@ -6,7 +6,8 @@
         "MC_SERVER": "",
         "MC_PORT": 25565,
         "MC_ONLINE": true,
-        "DISCORD_APP_TOKEN": ""
+        "DISCORD_APP_TOKEN": "",
+        "LOG_LEVEL": "INFO"
     },
     "DATABASE": {
         "CONNECTION_STRING": "sqlite:////data/db.sqlite"

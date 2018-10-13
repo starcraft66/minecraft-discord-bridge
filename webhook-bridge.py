@@ -8,6 +8,7 @@ import re
 import requests
 import json
 import time
+import logging
 from optparse import OptionParser
 from config import Configuration
 from database import DiscordChannel
@@ -24,22 +25,34 @@ import asyncio
 
 UUID_CACHE = {}
 
+def setup_logging(level):
+    if level.lower() == "debug":
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+    log_format = "%(asctime)s:%(levelname)s:%(message)s"
+    logger = logging.basicConfig(filename="bridge_log.log", format=log_format, level=log_level)
+    stdout_logger=logging.StreamHandler(sys.stdout)
+    stdout_logger.setFormatter(logging.Formatter(log_format))
+    logging.getLogger().addHandler(stdout_logger)
+
 def main():
     config = Configuration("config.json")
+    setup_logging(config.logging_level)
 
     WEBHOOK_URL = config.webhook_url
 
     database_session.initialize(config)
 
     def handle_disconnect(join_game_packet):
-        print('Disconnected.')
+        logging.info('Disconnected.')
         connection.disconnect(immediate=True)
         time.sleep(5)
-        print('Reconnecting.')
+        logging.info('Reconnecting.')
         connection.connect()
 
     if not config.mc_online:
-        print("Connecting in offline mode...")
+        logging.info("Connecting in offline mode...")
         connection = Connection(
             config.mc_server, config.mc_port, username=config.mc_username,
             handle_exception=handle_disconnect)
@@ -48,9 +61,9 @@ def main():
         try:
             auth_token.authenticate(config.mc_username, config.mc_password)
         except YggdrasilError as e:
-            print(e)
+            logging.info(e)
             sys.exit()
-        print("Logged in as %s..." % auth_token.username)
+        logging.info("Logged in as %s..." % auth_token.username)
         connection = Connection(
             config.mc_server, config.mc_port, auth_token=auth_token,
             handle_exception=handle_disconnect)
@@ -63,7 +76,7 @@ def main():
             handle_join_game, clientbound.play.JoinGamePacket)
 
         connection.register_packet_listener(
-            print_chat, clientbound.play.ChatMessagePacket)
+            handle_chat, clientbound.play.ChatMessagePacket)
 
         connection.register_packet_listener(
             handle_health_update, clientbound.play.UpdateHealthPacket)
@@ -82,10 +95,9 @@ def main():
                del UUID_CACHE[action.name]
 
     def handle_join_game(join_game_packet):
-        print('Connected.')
+        logging.info('Connected.')
 
-    def print_chat(chat_packet):
-
+    def handle_chat(chat_packet):
         json_data = json.loads(chat_packet.json_data)
         if "extra" not in json_data:
             return
@@ -96,7 +108,7 @@ def main():
         # Handle join/leave
         regexp_match = re.match("^(.*) (joined|left) the game", chat_string, re.M|re.I)
         if regexp_match:
-            print("Username: {} Status: {} the game".format(regexp_match.group(1), regexp_match.group(2)))
+            logging.info("Username: {} Status: {} the game".format(regexp_match.group(1), regexp_match.group(2)))
             username = regexp_match.group(1)
             status = regexp_match.group(2)
             if username not in UUID_CACHE:
@@ -122,11 +134,13 @@ def main():
             message = regexp_match.group(2)
             if username not in UUID_CACHE:
                 # Shouldn't happen anymore since the tab list packet sends us uuids
+                logging.debug("Got chat message from player {}, their UUID was not cached so it is being looked up via the Mojang API.".format(username))
                 player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
                 UUID_CACHE[username] = player_uuid
             else:
+                logging.debug("Got chat message from player {}, not looking up their UUID because it is already cached as {}.".format(username, UUID_CACHE[username]))
                 player_uuid = UUID_CACHE[username]
-            print("Username: {} Message: {}".format(username, message))
+            logging.info("Username: {} Message: {}".format(username, message))
             webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                 'embeds': [{'title': '{}'.format(message)}]}
             post = requests.post(WEBHOOK_URL,json=webhook_payload)    
@@ -134,7 +148,7 @@ def main():
     def handle_health_update(health_update_packet):
         if health_update_packet.health <= 0:
             #We need to respawn!!!!
-            print("Respawned the player because it died!")
+            logging.info("Respawned the player because it died!")
             packet = serverbound.play.ClientStatusPacket()
             packet.action_id = serverbound.play.ClientStatusPacket.RESPAWN
             connection.write_packet(packet)
@@ -145,7 +159,7 @@ def main():
 
     @discord_bot.event
     async def on_ready():
-        print("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
+        logging.info("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
 
     @discord_bot.event
     async def on_message(message):
@@ -153,7 +167,7 @@ def main():
         if message.content.startswith("mc!chathere"):
             session = database_session.get_session()
             channels = session.query(DiscordChannel).filter_by(channel_id=this_channel).all()
-            print(channels)
+            logging.info(channels)
             if not channels:
                 new_channel = DiscordChannel(this_channel)
                 session.add(new_channel)
@@ -173,7 +187,7 @@ def main():
             deleted = session.query(DiscordChannel).filter_by(channel_id=this_channel).delete()
             session.commit()
             session.close()
-            print(deleted)
+            logging.info(deleted)
             if deleted < 1:
                 msg = "The bot was not chatting here!"
                 await discord_bot.send_message(message.channel, msg)
@@ -195,7 +209,7 @@ def main():
         try:
             text = input()
             if text == "/respawn":
-                print("respawning...")
+                logging.info("respawning...")
                 packet = serverbound.play.ClientStatusPacket()
                 packet.action_id = serverbound.play.ClientStatusPacket.RESPAWN
                 connection.write_packet(packet)
@@ -204,7 +218,7 @@ def main():
                 packet.message = text
                 connection.write_packet(packet)
         except KeyboardInterrupt:
-            print("Bye!")
+            logging.info("Bye!")
             sys.exit()
  
 
