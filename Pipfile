@@ -10,10 +10,10 @@ minecraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
 requests = "*"
 cryptography = "*"
 future = "*"
-"discord.py" = {git = "https://github.com/Rapptz/discord.py.git"}
 sqlalchemy = "*"
 mcstatus = "*"
 quarry = "*"
+discord-py = {git = "https://github.com/Rapptz/discord.py.git", ref = "rewrite"}
 
 [requires]
 python_version = "3.6"

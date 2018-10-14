@@ -246,7 +246,11 @@ def main():
         if message.author == discord_bot.user:
             return
         this_channel = message.channel.id
-        if message.channel.is_private:
+        if isinstance(message.channel, discord.abc.PrivateChannel):
+            if message.content.startswith("mc!help"):
+                return
+            if message.content.startswith("mc!somethingelse"):
+                return
             if message.content.startswith("mc!register"):
                 session = database_session.get_session()
                 discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
@@ -262,17 +266,16 @@ def main():
                 session.add(account_link_token)
                 session.commit()
                 msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!".format(new_token, config.auth_dns, config.auth_port)
-                await discord_bot.send_message(message.channel, msg)
                 session.close()
+                await message.channel.send(msg)
                 return
             else:
                 msg = "Unknown command, type `mc!help` for a list of commands."
-                await discord_bot.send_message(message.channel, msg)
+                await message.channel.send(msg)
                 return
         if message.content.startswith("mc!chathere"):
             session = database_session.get_session()
             channels = session.query(DiscordChannel).filter_by(channel_id=this_channel).all()
-            logging.info(channels)
             if not channels:
                 new_channel = DiscordChannel(this_channel)
                 session.add(new_channel)
@@ -280,10 +283,10 @@ def main():
                 session.close()
                 del session
                 msg = "The bot will now start chatting here! To stop this, run `mc!stopchathere`."
-                await discord_bot.send_message(message.channel, msg)
+                await message.channel.send(msg)
             else:
                 msg = "The bot is already chatting in this channel! To stop this, run `mc!stopchathere`."
-                await discord_bot.send_message(message.channel, msg)
+                await message.channel.send(msg)
                 return
 
         elif message.content.startswith("mc!stopchathere"):
@@ -292,18 +295,17 @@ def main():
             deleted = session.query(DiscordChannel).filter_by(channel_id=this_channel).delete()
             session.commit()
             session.close()
-            logging.info(deleted)
             if deleted < 1:
                 msg = "The bot was not chatting here!"
-                await discord_bot.send_message(message.channel, msg)
+                await message.channel.send(msg)
                 return
             else:
                 msg = "The bot will no longer here!"
-                await discord_bot.send_message(message.channel, msg)
+                await message.channel.send(msg)
                 return
             
         elif not message.author.bot:
-            await discord_bot.delete_message(message)
+            await message.delete()
             packet = serverbound.play.ChatPacket()
             packet.message = "{}: {}".format(message.author.name, message.content)
             connection.write_packet(packet)

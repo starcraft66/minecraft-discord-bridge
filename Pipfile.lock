@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "45a63e42d93560ed412ddaeed6b5962c849eeaf9424c12f63e4a6c3aea903377"
+            "sha256": "a940822d36bbfcc2e6b46e68636b5c40b0cf43ab2ed80166ba84ccf1b24dd06b"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -129,10 +129,7 @@
         },
         "discord-py": {
             "git": "https://github.com/Rapptz/discord.py.git",
-            "ref": "1863a1c6636f53592519320a173ec9573c090c0b"
-        },
-        "discord.py": {
-            "git": "https://github.com/Rapptz/discord.py.git"
+            "ref": "860d6a9ace8248dfeec18b8b159e7b757d9f56bb"
         },
         "dnspython": {
             "hashes": [
@@ -205,10 +202,6 @@
                 "sha256:a988718abfad80b6b157acce7bf130a30876d27603738ac39f140993246b25b3"
             ],
             "version": "==2.19"
-        },
-        "pycraft": {
-            "git": "https://github.com/ammaraskar/pyCraft.git",
-            "ref": "48e1003f4264c1f7d6ecc3ac59022738a29ebe21"
         },
         "pyhamcrest": {
             "hashes": [
