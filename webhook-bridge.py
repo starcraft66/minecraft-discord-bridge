@@ -46,7 +46,7 @@ def run_auth_server(port):
     # We need to import twisted after setting up the logger because twisted hijacks our logging
     # TODO: Fix this in a cleaner way
     from twisted.internet import reactor
-    from auth_server import AuthFactory, AuthProtocol
+    from auth_server import AuthFactory
 
     # Create factory
     factory = AuthFactory()
