@@ -6,7 +6,6 @@ name = "pypi"
 [dev-packages]
 
 [packages]
-pycraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
 minecraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
 requests = "*"
 cryptography = "*"
