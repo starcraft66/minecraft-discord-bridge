@@ -77,7 +77,7 @@ def main():
     reactor_thread = Thread(target=run_auth_server, args=(config.auth_port,))
     reactor_thread.start()
 
-    def handle_disconnect(join_game_packet):
+    def handle_disconnect():
         logging.info('Disconnected.')
         connection.disconnect(immediate=True)
         while not is_server_online():
@@ -85,6 +85,12 @@ def main():
             time.sleep(5)
         logging.info('Reconnecting.')
         connection.connect()
+
+    def handle_disconnect_packet(join_game_packet):
+        handle_disconnect()
+
+    def minecraft_handle_exception(exception, exc_info):
+        handle_disconnect()
 
     def is_server_online():
         server = MinecraftServer.lookup("{}:{}".format(config.mc_server, config.mc_port))
@@ -105,7 +111,7 @@ def main():
             sys.exit(1)
         connection = Connection(
             config.mc_server, config.mc_port, username=config.mc_username,
-            handle_exception=handle_disconnect)
+            handle_exception=minecraft_handle_exception)
     else:
         auth_token = authentication.AuthenticationToken()
         try:
@@ -121,7 +127,7 @@ def main():
             sys.exit(1)
         connection = Connection(
             config.mc_server, config.mc_port, auth_token=auth_token,
-            handle_exception=handle_disconnect)
+            handle_exception=minecraft_handle_exception)
 
     #Initialize the discord part
     discord_bot = discord.Client()
@@ -137,7 +143,7 @@ def main():
             handle_health_update, clientbound.play.UpdateHealthPacket)
 
         connection.register_packet_listener(
-            handle_disconnect, clientbound.play.DisconnectPacket)
+            handle_disconnect_packet, clientbound.play.DisconnectPacket)
 
         connection.register_packet_listener(
             handle_tab_list, clientbound.play.PlayerListItemPacket)
