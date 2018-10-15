@@ -28,7 +28,40 @@ import asyncio
 
 from mcstatus import MinecraftServer
 
-UUID_CACHE = {}
+from bidict import bidict
+
+UUID_CACHE = bidict()
+
+def mc_uuid_to_username(uuid):
+    if uuid not in UUID_CACHE:
+        try:
+            short_uuid = uuid.replace("-", "")
+            mojang_response = requests.get("https://api.mojang.com/user/profiles/{}/names".format(short_uuid)).json()
+            if len(mojang_response) > 1:
+                # Multiple name changes
+                player_username = mojang_response[:-1]["name"]
+            else:
+                # Only one name
+                player_username = mojang_response[0]["name"]
+            UUID_CACHE[uuid] = player_username
+            return player_username
+        except:
+            logging.error("Failed to lookup {}'s username using the Mojang API.".format(uuid))
+    else:
+        return UUID_CACHE[uuid]
+
+    
+def mc_username_to_uuid(username):
+    if username not in UUID_CACHE:
+        try:
+            player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
+            UUID_CACHE[username] = player_uuid
+            return player_uuid
+        except:
+            logging.error("Failed to lookup {}'s UUID using the Mojang API.".format(username))
+    else:
+        return UUID_CACHE[username]
+
 
 def setup_logging(level):
     if level.lower() == "debug":
@@ -80,6 +113,7 @@ def main():
     def handle_disconnect():
         logging.info('Disconnected.')
         connection.disconnect(immediate=True)
+        time.sleep(5)
         while not is_server_online():
             logging.info('Not reconnecting to server because it appears to be offline.')
             time.sleep(5)
@@ -90,6 +124,7 @@ def main():
         handle_disconnect()
 
     def minecraft_handle_exception(exception, exc_info):
+        logging.info("{}: {}".format(exception, exc_info))
         handle_disconnect()
 
     def is_server_online():
@@ -179,18 +214,7 @@ def main():
             logging.info("Username: {} Status: {} the game".format(regexp_match.group(1), regexp_match.group(2)))
             username = regexp_match.group(1)
             status = regexp_match.group(2)
-            if username not in UUID_CACHE:
-                # Shouldn't happen anymore since the tab list packet sends us uuids
-                logging.debug("Got chat message from player {}, their UUID was not cached so it is being looked up via the Mojang API.".format(username))
-                try:
-                    player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
-                    UUID_CACHE[username] = player_uuid
-                except:
-                    logging.error("Failed to lookup {}'s UUID using the Mojang API.")
-                    return
-            else:
-                logging.debug("Got chat message from player {}, not looking up their UUID because it is already cached as {}.".format(username, UUID_CACHE[username]))
-                player_uuid = UUID_CACHE[username]
+            player_uuid = mc_username_to_uuid(username)
             if status == "joined":
                 webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                     'content': '', 'embeds': [{'color': 65280, 'title': '**Joined the game**'}]}
@@ -207,18 +231,7 @@ def main():
         if regexp_match:
             username = regexp_match.group(1)
             message = regexp_match.group(2)
-            if username not in UUID_CACHE:
-                # Shouldn't happen anymore since the tab list packet sends us uuids
-                logging.debug("Got chat message from player {}, their UUID was not cached so it is being looked up via the Mojang API.".format(username))
-                try:
-                    player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
-                    UUID_CACHE[username] = player_uuid
-                except:
-                    logging.error("Failed to lookup {}'s UUID using the Mojang API.")
-                    return
-            else:
-                logging.debug("Got chat message from player {}, not looking up their UUID because it is already cached as {}.".format(username, UUID_CACHE[username]))
-                player_uuid = UUID_CACHE[username]
+            player_uuid = mc_username_to_uuid(username)
             logging.info("Username: {} Message: {}".format(username, message))
             webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                 'embeds': [{'title': '{}'.format(message)}]}
@@ -239,6 +252,7 @@ def main():
     @discord_bot.event
     async def on_ready():
         logging.info("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
+
 
     @discord_bot.event
     async def on_message(message):
