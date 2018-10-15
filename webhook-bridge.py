@@ -32,6 +32,8 @@ from bidict import bidict
 
 UUID_CACHE = bidict()
 
+BOT_USERNAME = ""
+
 def mc_uuid_to_username(uuid):
     if uuid not in UUID_CACHE:
         try:
@@ -100,6 +102,7 @@ def generate_random_auth_token(length):
 
 
 def main():
+    global BOT_USERNAME
     config = Configuration("config.json")
     setup_logging(config.logging_level)
 
@@ -144,6 +147,7 @@ def main():
         if not is_server_online():
             logging.info('Not connecting to server because it appears to be offline.')
             sys.exit(1)
+        BOT_USERNAME = config.mc_username
         connection = Connection(
             config.mc_server, config.mc_port, username=config.mc_username,
             handle_exception=minecraft_handle_exception)
@@ -154,7 +158,6 @@ def main():
         except YggdrasilError as e:
             logging.info(e)
             sys.exit()
-        global BOT_USERNAME
         BOT_USERNAME = auth_token.username
         logging.info("Logged in as %s..." % auth_token.username)
         if not is_server_online():
@@ -230,6 +233,9 @@ def main():
         regexp_match = re.match("<(.*?)> (.*)", chat_string, re.M|re.I)
         if regexp_match:
             username = regexp_match.group(1)
+            if username.lower() == BOT_USERNAME.lower():
+                # Don't relay our own messages
+                return
             message = regexp_match.group(2)
             player_uuid = mc_username_to_uuid(username)
             logging.info("Username: {} Message: {}".format(username, message))
@@ -320,9 +326,20 @@ def main():
             
         elif not message.author.bot:
             await message.delete()
-            packet = serverbound.play.ChatPacket()
-            packet.message = "{}: {}".format(message.author.name, message.content)
-            connection.write_packet(packet)
+            session = database_session.get_session()
+            discord_user = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
+            if discord_user:
+                if discord_user.minecraft_account:
+                    minecraft_uuid = discord_user.minecraft_account.minecraft_uuid
+                    minecraft_username = mc_uuid_to_username(minecraft_uuid)
+
+                    webhook_payload = {'username': minecraft_username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
+                        'embeds': [{'title': '{}'.format(message.content)}]}
+                    post = requests.post(WEBHOOK_URL,json=webhook_payload)
+
+                    packet = serverbound.play.ChatPacket()
+                    packet.message = "{}: {}".format(minecraft_username, message.content)
+                    connection.write_packet(packet)
 
     discord_bot.run(config.discord_token)
 
