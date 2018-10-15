@@ -342,22 +342,6 @@ def main():
                     connection.write_packet(packet)
 
     discord_bot.run(config.discord_token)
-
-    while True:
-        try:
-            text = input()
-            if text == "/respawn":
-                logging.info("respawning...")
-                packet = serverbound.play.ClientStatusPacket()
-                packet.action_id = serverbound.play.ClientStatusPacket.RESPAWN
-                connection.write_packet(packet)
-            else:
-                packet = serverbound.play.ChatPacket()
-                packet.message = text
-                connection.write_packet(packet)
-        except KeyboardInterrupt:
-            logging.info("Bye!")
-            sys.exit()
  
 
 if __name__ == "__main__":
