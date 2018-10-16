@@ -38,10 +38,12 @@ class AuthProtocol(ServerProtocol):
             token = session.query(AccountLinkToken).filter_by(token=connection_token).first()
             if not token:
                 self.close("You have connected with an invalid token!")
+                session.close()
                 return
             discord_account = session.query(DiscordAccount).filter_by(link_token_id=token.id).first()
             if not discord_account:
                 self.close("You have connected with an invalid token!")
+                session.close()
                 return
             if datetime.utcnow() < token.expiry:
                 # Check if they already have a linked account and are re-linking
@@ -66,6 +68,7 @@ class AuthProtocol(ServerProtocol):
 
         except Exception as e:
             self.logger.error(e)
+            session.close()
 
 
         # Kick the player.
