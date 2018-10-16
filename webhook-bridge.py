@@ -64,6 +64,31 @@ def mc_username_to_uuid(username):
     else:
         return UUID_CACHE[username]
 
+        
+def get_discord_help_string():
+    help = "\
+Admin commands:\n\
+`mc!chathere`: Starts outputting server messages in this channel\n\
+`mc!stopchathere`: Stops outputting server messages in this channel\n\
+User commands:\n\
+`mc!register`: Starts the minecraft account registration process\n\
+To start chatting on the minecraft server, please register your account using `mc!register`.\
+    "
+    return help
+
+
+# https://stackoverflow.com/questions/33404752/removing-emojis-from-a-string-in-python
+def remove_emoji(string):
+    emoji_pattern = re.compile("["
+                           u"\U0001F600-\U0001F64F"  # emoticons
+                           u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                           u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                           u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                           u"\U00002702-\U000027B0"
+                           u"\U000024C2-\U0001F251"
+                           "]+", flags=re.UNICODE)
+    return emoji_pattern.sub(r'', string)
+
 
 def setup_logging(level):
     if level.lower() == "debug":
@@ -239,8 +264,10 @@ def main():
             message = regexp_match.group(2)
             player_uuid = mc_username_to_uuid(username)
             logging.info("Username: {} Message: {}".format(username, message))
+            #webhook_payload = {'username': minecraft_username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
+            #               'content': '{}'.format(message)}
             webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-                'embeds': [{'title': '{}'.format(message)}]}
+               'embeds': [{'title': '{}'.format(message)}]}
             post = requests.post(WEBHOOK_URL,json=webhook_payload)    
 
     def handle_health_update(health_update_packet):
@@ -266,34 +293,61 @@ def main():
         if message.author == discord_bot.user:
             return
         this_channel = message.channel.id
-        if isinstance(message.channel, discord.abc.PrivateChannel):
-            if message.content.startswith("mc!help"):
-                return
-            if message.content.startswith("mc!somethingelse"):
-                return
-            if message.content.startswith("mc!register"):
-                session = database_session.get_session()
-                discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
-                if not discord_account:
-                    new_discord_account = DiscordAccount(message.author.id)
-                    session.add(new_discord_account)
-                    session.commit()
-                    discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
 
-                new_token = generate_random_auth_token(16)
-                account_link_token = AccountLinkToken(message.author.id, new_token)
-                discord_account.link_token = account_link_token
-                session.add(account_link_token)
+        # PM Commands
+        if message.content.startswith("mc!help"):
+            send_channel = message.channel
+            if isinstance(message.channel, discord.abc.GuildChannel):
+                await message.delete()
+                dm_channel = message.author.dm_channel
+                if not dm_channel:
+                    await message.author.create_dm()
+                    send_channel = message.author.dm_channel
+            msg = get_discord_help_string()
+            await send_channel.send(msg)
+            return
+
+        elif message.content.startswith("mc!register"):
+            send_channel = message.channel
+            if isinstance(message.channel, discord.abc.GuildChannel):
+                await message.delete()
+                dm_channel = message.author.dm_channel
+                if not dm_channel:
+                    await message.author.create_dm()
+                    send_channel = message.author.dm_channel
+            session = database_session.get_session()
+            discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
+            if not discord_account:
+                new_discord_account = DiscordAccount(message.author.id)
+                session.add(new_discord_account)
                 session.commit()
-                msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!".format(new_token, config.auth_dns, config.auth_port)
-                session.close()
+                discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
+
+            new_token = generate_random_auth_token(16)
+            account_link_token = AccountLinkToken(message.author.id, new_token)
+            discord_account.link_token = account_link_token
+            session.add(account_link_token)
+            session.commit()
+            msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!".format(new_token, config.auth_dns, config.auth_port)
+            session.close()
+            await send_channel.send(msg)
+            return
+
+        # Global Commands
+        elif message.content.startswith("mc!chathere"):
+            if isinstance(message.channel, discord.abc.PrivateChannel):
+                msg = "Sorry, this command is only available in public channels."
                 await message.channel.send(msg)
                 return
-            else:
-                msg = "Unknown command, type `mc!help` for a list of commands."
-                await message.channel.send(msg)
+            if message.author.id not in config.admin_users:
+                await message.delete()
+                dm_channel = message.author.dm_channel
+                if not dm_channel:
+                    await message.author.create_dm()
+                    dm_channel = message.author.dm_channel
+                msg = "Sorry, you do not have permission to execute that command!"
+                await dm_channel.send(msg)
                 return
-        if message.content.startswith("mc!chathere"):
             session = database_session.get_session()
             channels = session.query(DiscordChannel).filter_by(channel_id=this_channel).all()
             if not channels:
@@ -310,6 +364,19 @@ def main():
                 return
 
         elif message.content.startswith("mc!stopchathere"):
+            if isinstance(message.channel, discord.abc.PrivateChannel):
+                msg = "Sorry, this command is only available in public channels."
+                await message.channel.send(msg)
+                return
+            if message.author.id not in config.admin_users:
+                await message.delete()
+                dm_channel = message.author.dm_channel
+                if not dm_channel:
+                    await message.author.create_dm()
+                    dm_channel = message.author.dm_channel
+                msg = "Sorry, you do not have permission to execute that command!"
+                await dm_channel.send(msg)
+                return
             session = database_session.get_session()
             channels = session.query(DiscordChannel).all()
             deleted = session.query(DiscordChannel).filter_by(channel_id=this_channel).delete()
@@ -323,23 +390,64 @@ def main():
                 msg = "The bot will no longer here!"
                 await message.channel.send(msg)
                 return
+
+        elif message.content.startswith("mc!"):
+            # Chatch-all
+            send_channel = message.channel
+            if isinstance(message.channel, discord.abc.GuildChannel):
+                await message.delete()
+                dm_channel = message.author.dm_channel
+                if not dm_channel:
+                    await message.author.create_dm()
+                    send_channel = message.author.dm_channel
+            msg = "Unknown command, type `mc!help` for a list of commands."
+            await send_channel.send(msg)
+            return
             
         elif not message.author.bot:
-            await message.delete()
             session = database_session.get_session()
-            discord_user = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
-            if discord_user:
-                if discord_user.minecraft_account:
-                    minecraft_uuid = discord_user.minecraft_account.minecraft_uuid
-                    minecraft_username = mc_uuid_to_username(minecraft_uuid)
+            channel_should_chat = session.query(DiscordChannel).filter_by(channel_id=this_channel).first()
+            if channel_should_chat:
+                await message.delete()
+                discord_user = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
+                if discord_user:
+                    if discord_user.minecraft_account:
+                        minecraft_uuid = discord_user.minecraft_account.minecraft_uuid
+                        session.close()
+                        minecraft_username = mc_uuid_to_username(minecraft_uuid)
 
-                    webhook_payload = {'username': minecraft_username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
-                        'embeds': [{'title': '{}'.format(message.content)}]}
-                    post = requests.post(WEBHOOK_URL,json=webhook_payload)
+                        padding = len(BOT_USERNAME) + 5 + len(minecraft_username)
 
-                    packet = serverbound.play.ChatPacket()
-                    packet.message = "{}: {}".format(minecraft_username, message.content)
-                    connection.write_packet(packet)
+                        message_to_send = remove_emoji(message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
+                        message_to_discord = message.clean_content
+
+                        logging.info(str(len(message_to_send)) + " " + repr(message_to_send))
+
+                        total_len = padding + len(message_to_send)
+                        if total_len > 256:
+                            message_to_send = message_to_send[:(256 - padding)]
+                            message_to_discord = message_to_discord[:(256 - padding)]
+                        elif len(message_to_send) <= 0:
+                            return
+
+                        webhook_payload = {'username': minecraft_username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
+                              'embeds': [{'title': '{}'.format(message_to_send)}]}
+                              #'content': '{}'.format(message_to_discord)
+                        post = requests.post(WEBHOOK_URL,json=webhook_payload)
+
+                        packet = serverbound.play.ChatPacket()
+                        packet.message = "{}: {}".format(minecraft_username, message_to_send)
+                        connection.write_packet(packet)
+                else:
+                    send_channel = message.channel
+                    if isinstance(message.channel, discord.abc.GuildChannel):
+                        dm_channel = message.author.dm_channel
+                        if not dm_channel:
+                            await message.author.create_dm()
+                            send_channel = message.author.dm_channel
+                    msg = "Unable to send chat message: there is no Minecraft account linked to this discord account, please run `mc!register`."
+                    await send_channel.send(msg)
+            
 
     discord_bot.run(config.discord_token)
  

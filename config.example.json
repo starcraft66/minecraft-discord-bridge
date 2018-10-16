@@ -7,7 +7,10 @@
         "MC_PORT": 25565,
         "MC_ONLINE": true,
         "DISCORD_APP_TOKEN": "",
-        "LOG_LEVEL": "INFO"
+        "LOG_LEVEL": "INFO",
+        "ADMINS": [
+            "283983554051047425"
+        ]
     },
     "AUTH_SERVER": {
         "BIND_IP": "",
