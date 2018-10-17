@@ -264,10 +264,10 @@ def main():
             message = regexp_match.group(2)
             player_uuid = mc_username_to_uuid(username)
             logging.info("Username: {} Message: {}".format(username, message))
-            #webhook_payload = {'username': minecraft_username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
-            #               'content': '{}'.format(message)}
+            # Ghetto fix for sanitizing chat messages until Issue #4 is resolved.
+            message = message.replace("@", "@\N{zero width space}")
             webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-               'embeds': [{'title': '{}'.format(message)}]}
+                           'content': '{}'.format(message)}
             post = requests.post(WEBHOOK_URL,json=webhook_payload)    
 
     def handle_health_update(health_update_packet):
@@ -431,8 +431,7 @@ def main():
                             return
 
                         webhook_payload = {'username': minecraft_username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
-                              'embeds': [{'title': '{}'.format(message_to_send)}]}
-                              #'content': '{}'.format(message_to_discord)
+                              'content': '{}'.format(message_to_discord)}
                         post = requests.post(WEBHOOK_URL,json=webhook_payload)
 
                         packet = serverbound.play.ChatPacket()
