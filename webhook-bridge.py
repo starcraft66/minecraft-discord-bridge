@@ -84,8 +84,9 @@ def remove_emoji(string):
                            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
                            u"\U0001F680-\U0001F6FF"  # transport & map symbols
                            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-                           u"\U00002702-\U000027B0"
-                           u"\U000024C2-\U0001F251"
+                           u"\U0001F900-\U0001FAFF"  # CJK Compatibility Ideographs
+    #                       u"\U00002702-\U000027B0"
+    #                       u"\U000024C2-\U0001F251"
                            "]+", flags=re.UNICODE)
     return emoji_pattern.sub(r'', string)
 
@@ -264,8 +265,8 @@ def main():
             message = regexp_match.group(2)
             player_uuid = mc_username_to_uuid(username)
             logging.info("Username: {} Message: {}".format(username, message))
-            # Ghetto fix for sanitizing chat messages until Issue #4 is resolved.
-            message = remove_emoji(message.replace("@", "@\N{zero width space}"))
+            logging.debug("msg: {}".format(repr(message)))
+            message = remove_emoji(message.strip().replace("@", "@\N{zero width space}"))
             webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                            'content': '{}'.format(message)}
             post = requests.post(WEBHOOK_URL,json=webhook_payload)    
