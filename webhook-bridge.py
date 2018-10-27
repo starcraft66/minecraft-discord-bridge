@@ -265,7 +265,7 @@ def main():
             player_uuid = mc_username_to_uuid(username)
             logging.info("Username: {} Message: {}".format(username, message))
             # Ghetto fix for sanitizing chat messages until Issue #4 is resolved.
-            message = message.replace("@", "@\N{zero width space}")
+            message = remove_emoji(message.replace("@", "@\N{zero width space}"))
             webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                            'content': '{}'.format(message)}
             post = requests.post(WEBHOOK_URL,json=webhook_payload)    
