@@ -238,7 +238,7 @@ def main():
             chat_string += chat_component["text"] 
 
         # Handle join/leave
-        regexp_match = re.match("^(.*) (joined|left) the game", chat_string, re.M|re.I)
+        regexp_match = re.match("^([A-Za-z0-9_]*) (joined|left) the game", chat_string, re.M|re.I)
         if regexp_match:
             logging.info("Username: {} Status: {} the game".format(regexp_match.group(1), regexp_match.group(2)))
             username = regexp_match.group(1)
