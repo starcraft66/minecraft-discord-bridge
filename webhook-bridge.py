@@ -54,15 +54,15 @@ def mc_uuid_to_username(uuid):
 
     
 def mc_username_to_uuid(username):
-    if username not in UUID_CACHE:
+    if username not in UUID_CACHE.inv:
         try:
             player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
-            UUID_CACHE[username] = player_uuid
+            UUID_CACHE.inv[username] = player_uuid
             return player_uuid
         except:
             logging.error("Failed to lookup {}'s UUID using the Mojang API.".format(username))
     else:
-        return UUID_CACHE[username]
+        return UUID_CACHE.inv[username]
 
         
 def get_discord_help_string():
@@ -217,14 +217,21 @@ def main():
         for action in tab_list_packet.actions:
             if isinstance(action, clientbound.play.PlayerListItemPacket.AddPlayerAction):
                 logging.debug("Processing AddPlayerAction tab list packet, name: {}, uuid: {}".format(action.name, action.uuid))
-                if action.name not in UUID_CACHE:
-                    UUID_CACHE[action.name] = action.uuid
+                username = action.name
+                player_uuid = action.uuid
+                webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                    'content': '', 'embeds': [{'color': 65280, 'title': '**Joined the game**'}]}
+                post = requests.post(WEBHOOK_URL,json=webhook_payload)
+                if action.name not in UUID_CACHE.inv:
+                    UUID_CACHE.inv[action.name] = action.uuid
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
                 logging.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
-                for username in UUID_CACHE:
-                    if UUID_CACHE[username] == action.uuid:
-                        del UUID_CACHE[username]
-                        break
+                username = UUID_CACHE[action.uuid]
+                player_uuid = action.uuid
+                webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                    'content': '', 'embeds': [{'color': 16711680, 'title': '**Left the game**'}]}
+                post = requests.post(WEBHOOK_URL,json=webhook_payload)
+                del UUID_CACHE[action.uuid]
 
     def handle_join_game(join_game_packet):
         logging.info('Connected.')
@@ -236,24 +243,6 @@ def main():
         chat_string = ""
         for chat_component in json_data["extra"]:
             chat_string += chat_component["text"] 
-
-        # Handle join/leave
-        regexp_match = re.match("^([A-Za-z0-9_]*) (joined|left) the game", chat_string, re.M|re.I)
-        if regexp_match:
-            logging.info("Username: {} Status: {} the game".format(regexp_match.group(1), regexp_match.group(2)))
-            username = regexp_match.group(1)
-            status = regexp_match.group(2)
-            player_uuid = mc_username_to_uuid(username)
-            if status == "joined":
-                webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-                    'content': '', 'embeds': [{'color': 65280, 'title': '**Joined the game**'}]}
-            elif status == "left":
-                webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-                    'content': '', 'embeds': [{'color': 16711680, 'title': '**Left the game**'}]}
-            else:
-                return
-            post = requests.post(WEBHOOK_URL,json=webhook_payload)
-            
         
         # Handle chat message
         regexp_match = re.match("<(.*?)> (.*)", chat_string, re.M|re.I)
