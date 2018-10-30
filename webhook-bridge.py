@@ -142,7 +142,7 @@ def main():
     def handle_disconnect():
         logging.info('Disconnected.')
         connection.disconnect(immediate=True)
-        time.sleep(5)
+        time.sleep(15)
         while not is_server_online():
             logging.info('Not reconnecting to server because it appears to be offline.')
             time.sleep(5)
