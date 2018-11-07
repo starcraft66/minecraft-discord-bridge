@@ -186,9 +186,9 @@ def main():
             sys.exit()
         BOT_USERNAME = auth_token.username
         logging.info("Logged in as %s..." % auth_token.username)
-        if not is_server_online():
+        while not is_server_online():
             logging.info('Not connecting to server because it appears to be offline.')
-            sys.exit(1)
+            time.sleep(15)
         connection = Connection(
             config.mc_server, config.mc_port, auth_token=auth_token,
             handle_exception=minecraft_handle_exception)
