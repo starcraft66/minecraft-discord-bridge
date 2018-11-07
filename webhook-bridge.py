@@ -193,7 +193,7 @@ def main():
             config.mc_server, config.mc_port, auth_token=auth_token,
             handle_exception=minecraft_handle_exception)
 
-    #Initialize the discord part
+    # Initialize the discord part
     discord_bot = discord.Client()
 
     def register_handlers(connection):
@@ -275,7 +275,6 @@ def main():
     @discord_bot.event
     async def on_ready():
         logging.info("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
-
 
     @discord_bot.event
     async def on_message(message):
@@ -382,7 +381,7 @@ def main():
                 return
 
         elif message.content.startswith("mc!"):
-            # Chatch-all
+            # Catch-all
             send_channel = message.channel
             if isinstance(message.channel, discord.abc.GuildChannel):
                 await message.delete()
@@ -436,11 +435,9 @@ def main():
                             send_channel = message.author.dm_channel
                     msg = "Unable to send chat message: there is no Minecraft account linked to this discord account, please run `mc!register`."
                     await send_channel.send(msg)
-            
 
     discord_bot.run(config.discord_token)
- 
+
 
 if __name__ == "__main__":
     main()
-    
