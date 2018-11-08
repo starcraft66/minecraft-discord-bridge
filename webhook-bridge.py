@@ -285,42 +285,59 @@ def main():
 
         # PM Commands
         if message.content.startswith("mc!help"):
-            send_channel = message.channel
-            if isinstance(message.channel, discord.abc.GuildChannel):
-                await message.delete()
-                dm_channel = message.author.dm_channel
-                if not dm_channel:
-                    await message.author.create_dm()
+            try:
+                send_channel = message.channel
+                if isinstance(message.channel, discord.abc.GuildChannel):
+                    await message.delete()
+                    dm_channel = message.author.dm_channel
+                    if not dm_channel:
+                        await message.author.create_dm()
                     send_channel = message.author.dm_channel
-            msg = get_discord_help_string()
-            await send_channel.send(msg)
-            return
+                msg = get_discord_help_string()
+                await send_channel.send(msg)
+            except discord.errors.Forbidden:
+                if isinstance(message.author, discord.abc.User):
+                    msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                    error_msg = await message.channel.send(msg)
+                    await asyncio.sleep(3)
+                    await error_msg.delete()
+            finally:
+                return
 
         elif message.content.startswith("mc!register"):
-            send_channel = message.channel
-            if isinstance(message.channel, discord.abc.GuildChannel):
-                await message.delete()
-                dm_channel = message.author.dm_channel
-                if not dm_channel:
-                    await message.author.create_dm()
+            try:
+                # TODO: Catch the Forbidden error in a smart way before running application logic
+                send_channel = message.channel
+                if isinstance(message.channel, discord.abc.GuildChannel):
+                    await message.delete()
+                    dm_channel = message.author.dm_channel
+                    if not dm_channel:
+                        await message.author.create_dm()
                     send_channel = message.author.dm_channel
-            session = database_session.get_session()
-            discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
-            if not discord_account:
-                new_discord_account = DiscordAccount(message.author.id)
-                session.add(new_discord_account)
-                session.commit()
+                session = database_session.get_session()
                 discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
+                if not discord_account:
+                    new_discord_account = DiscordAccount(message.author.id)
+                    session.add(new_discord_account)
+                    session.commit()
+                    discord_account = session.query(DiscordAccount).filter_by(discord_id=message.author.id).first()
 
-            new_token = generate_random_auth_token(16)
-            account_link_token = AccountLinkToken(message.author.id, new_token)
-            discord_account.link_token = account_link_token
-            session.add(account_link_token)
-            session.commit()
-            msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!".format(new_token, config.auth_dns, config.auth_port)
-            session.close()
-            await send_channel.send(msg)
-            return
+                new_token = generate_random_auth_token(16)
+                account_link_token = AccountLinkToken(message.author.id, new_token)
+                discord_account.link_token = account_link_token
+                session.add(account_link_token)
+                session.commit()
+                msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!".format(new_token, config.auth_dns, config.auth_port)
+                session.close()
+                await send_channel.send(msg)
+            except discord.errors.Forbidden:
+                if isinstance(message.author, discord.abc.User):
+                    msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                    error_msg = await message.channel.send(msg)
+                    await asyncio.sleep(3)
+                    await error_msg.delete()
+            finally:
+                return
 
         # Global Commands
         elif message.content.startswith("mc!chathere"):
@@ -330,13 +347,21 @@ def main():
                 return
             if message.author.id not in config.admin_users:
                 await message.delete()
-                dm_channel = message.author.dm_channel
-                if not dm_channel:
-                    await message.author.create_dm()
+                try:
                     dm_channel = message.author.dm_channel
-                msg = "Sorry, you do not have permission to execute that command!"
-                await dm_channel.send(msg)
-                return
+                    if not dm_channel:
+                        await message.author.create_dm()
+                    dm_channel = message.author.dm_channel
+                    msg = "Sorry, you do not have permission to execute that command!"
+                    await dm_channel.send(msg)
+                except discord.errors.Forbidden:
+                    if isinstance(message.author, discord.abc.User):
+                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        error_msg = await message.channel.send(msg)
+                        await asyncio.sleep(3)
+                        await error_msg.delete()
+                finally:
+                    return
             session = database_session.get_session()
             channels = session.query(DiscordChannel).filter_by(channel_id=this_channel).all()
             if not channels:
@@ -359,15 +384,22 @@ def main():
                 return
             if message.author.id not in config.admin_users:
                 await message.delete()
-                dm_channel = message.author.dm_channel
-                if not dm_channel:
-                    await message.author.create_dm()
+                try:
                     dm_channel = message.author.dm_channel
-                msg = "Sorry, you do not have permission to execute that command!"
-                await dm_channel.send(msg)
-                return
+                    if not dm_channel:
+                        await message.author.create_dm()
+                    dm_channel = message.author.dm_channel
+                    msg = "Sorry, you do not have permission to execute that command!"
+                    await dm_channel.send(msg)
+                except discord.errors.Forbidden:
+                    if isinstance(message.author, discord.abc.User):
+                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        error_msg = await message.channel.send(msg)
+                        await asyncio.sleep(3)
+                        await error_msg.delete()
+                finally:
+                    return
             session = database_session.get_session()
-            channels = session.query(DiscordChannel).all()
             deleted = session.query(DiscordChannel).filter_by(channel_id=this_channel).delete()
             session.commit()
             session.close()
@@ -383,15 +415,23 @@ def main():
         elif message.content.startswith("mc!"):
             # Catch-all
             send_channel = message.channel
-            if isinstance(message.channel, discord.abc.GuildChannel):
-                await message.delete()
-                dm_channel = message.author.dm_channel
-                if not dm_channel:
-                    await message.author.create_dm()
+            try:
+                if isinstance(message.channel, discord.abc.GuildChannel):
+                    await message.delete()
+                    dm_channel = message.author.dm_channel
+                    if not dm_channel:
+                        await message.author.create_dm()
                     send_channel = message.author.dm_channel
-            msg = "Unknown command, type `mc!help` for a list of commands."
-            await send_channel.send(msg)
-            return
+                msg = "Unknown command, type `mc!help` for a list of commands."
+                await send_channel.send(msg)
+            except discord.errors.Forbidden:
+                if isinstance(message.author, discord.abc.User):
+                    msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                    error_msg = await message.channel.send(msg)
+                    await asyncio.sleep(3)
+                    await error_msg.delete()
+            finally:
+                return
             
         elif not message.author.bot:
             session = database_session.get_session()
