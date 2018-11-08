@@ -148,7 +148,7 @@ def main():
         time.sleep(15)
         while not is_server_online():
             logging.info('Not reconnecting to server because it appears to be offline.')
-            time.sleep(5)
+            time.sleep(15)
         logging.info('Reconnecting.')
         connection.connect()
 
@@ -176,9 +176,9 @@ def main():
 
     if not config.mc_online:
         logging.info("Connecting in offline mode...")
-        if not is_server_online():
+        while not is_server_online():
             logging.info('Not connecting to server because it appears to be offline.')
-            sys.exit(1)
+            time.sleep(15)
         BOT_USERNAME = config.mc_username
         connection = Connection(
             config.mc_server, config.mc_port, username=config.mc_username,
