@@ -185,8 +185,8 @@ def main():
         except YggdrasilError as e:
             logging.info(e)
             sys.exit()
-        BOT_USERNAME = auth_token.username
-        logging.info("Logged in as %s..." % auth_token.username)
+        BOT_USERNAME = auth_token.profile.name
+        logging.info("Logged in as %s..." % auth_token.profile.name)
         while not is_server_online():
             logging.info('Not connecting to server because it appears to be offline.')
             time.sleep(15)
