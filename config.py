@@ -13,6 +13,7 @@ class Configuration(object):
                 self.mc_online = self._config["MAIN"]["MC_ONLINE"]
                 self.discord_token = self._config["MAIN"]["DISCORD_APP_TOKEN"]
                 self.logging_level = self._config["MAIN"]["LOG_LEVEL"]
+                self.message_delay = self._config["MAIN"]["MESSAGE_DELAY"]
                 self.admin_users = self._config["MAIN"]["ADMINS"]
                 self.auth_ip = self._config["AUTH_SERVER"]["BIND_IP"]
                 self.auth_port = self._config["AUTH_SERVER"]["PORT"]

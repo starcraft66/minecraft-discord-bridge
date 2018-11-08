@@ -15,6 +15,8 @@ from config import Configuration
 from database import DiscordChannel, AccountLinkToken, DiscordAccount
 import database_session
 
+from datetime import datetime, timedelta, timezone
+
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
 from minecraft.networking.connection import Connection
@@ -30,6 +32,8 @@ from bidict import bidict
 UUID_CACHE = bidict()
 WEBHOOKS = []
 BOT_USERNAME = ""
+NEXT_MESSAGE_TIME = datetime.now(timezone.utc)
+PREVIOUS_MESSAGE = ""
 
 
 def mc_uuid_to_username(uuid):
@@ -509,6 +513,21 @@ def main():
                         channels = session.query(DiscordChannel).all()
                         session.close()
                         del session
+                        global PREVIOUS_MESSAGE, NEXT_MESSAGE_TIME
+                        if message_to_send == PREVIOUS_MESSAGE or \
+                                datetime.now(timezone.utc) < NEXT_MESSAGE_TIME:
+                            send_channel = message.channel
+                            if isinstance(message.channel, discord.abc.GuildChannel):
+                                dm_channel = message.author.dm_channel
+                                if not dm_channel:
+                                    await message.author.create_dm()
+                                send_channel = message.author.dm_channel
+                            msg = "Your message \"{}\" has been rate-limited.".format(message.clean_content)
+                            await send_channel.send(msg)
+                            return
+
+                        PREVIOUS_MESSAGE = message_to_send
+                        NEXT_MESSAGE_TIME = datetime.now(timezone.utc) + timedelta(seconds=config.message_delay)
 
                         for channel in channels:
                             webhooks = await discord_bot.get_channel(channel.channel_id).webhooks()
@@ -528,7 +547,7 @@ def main():
                         dm_channel = message.author.dm_channel
                         if not dm_channel:
                             await message.author.create_dm()
-                            send_channel = message.author.dm_channel
+                        send_channel = message.author.dm_channel
                     msg = "Unable to send chat message: there is no Minecraft account linked to this discord account," \
                           "please run `mc!register`."
                     await send_channel.send(msg)
