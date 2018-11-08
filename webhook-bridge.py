@@ -2,7 +2,6 @@
 
 from __future__ import print_function
 
-import getpass
 import sys
 import re
 import requests
@@ -12,16 +11,14 @@ import logging
 import random
 import string
 from threading import Thread
-from optparse import OptionParser
 from config import Configuration
-from database import DiscordChannel, AccountLinkToken, MinecraftAccount, DiscordAccount
+from database import DiscordChannel, AccountLinkToken, DiscordAccount
 import database_session
 
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
 from minecraft.networking.connection import Connection
-from minecraft.networking.packets import Packet, clientbound, serverbound
-from minecraft.compat import input
+from minecraft.networking.packets import clientbound, serverbound
 
 import discord
 import asyncio
