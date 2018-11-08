@@ -222,7 +222,8 @@ def main():
         logging.debug("Processing tab list packet")
         for action in tab_list_packet.actions:
             if isinstance(action, clientbound.play.PlayerListItemPacket.AddPlayerAction):
-                logging.debug("Processing AddPlayerAction tab list packet, name: {}, uuid: {}".format(action.name, action.uuid))
+                logging.debug(
+                    "Processing AddPlayerAction tab list packet, name: {}, uuid: {}".format(action.name, action.uuid))
                 username = action.name
                 player_uuid = action.uuid
                 webhook_payload = {
