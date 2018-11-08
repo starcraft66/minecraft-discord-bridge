@@ -462,7 +462,10 @@ def main():
                         session.close()
                         minecraft_username = mc_uuid_to_username(minecraft_uuid)
 
-                        padding = len(BOT_USERNAME) + 5 + len(minecraft_username)
+                        # Max chat message length: 256, bot username does not count towards this
+                        # Does not count|Counts
+                        # <BOT_USERNAME> minecraft_username: message
+                        padding = 2 + len(minecraft_username)
 
                         message_to_send = remove_emoji(
                             message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
