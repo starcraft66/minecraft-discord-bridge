@@ -363,6 +363,7 @@ def main():
                 msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!"\
                     .format(new_token, config.auth_dns, config.auth_port)
                 session.close()
+                del session
                 await send_channel.send(msg)
             except discord.errors.Forbidden:
                 if isinstance(message.author, discord.abc.User):
@@ -483,6 +484,7 @@ def main():
                     if discord_user.minecraft_account:
                         minecraft_uuid = discord_user.minecraft_account.minecraft_uuid
                         session.close()
+                        del session
                         minecraft_username = mc_uuid_to_username(minecraft_uuid)
 
                         # Max chat message length: 256, bot username does not count towards this
@@ -506,6 +508,7 @@ def main():
                         session = database_session.get_session()
                         channels = session.query(DiscordChannel).all()
                         session.close()
+                        del session
 
                         for channel in channels:
                             webhooks = await discord_bot.get_channel(channel.channel_id).webhooks()
@@ -529,6 +532,11 @@ def main():
                     msg = "Unable to send chat message: there is no Minecraft account linked to this discord account," \
                           "please run `mc!register`."
                     await send_channel.send(msg)
+                    session.close()
+                    del session
+            else:
+                session.close()
+                del session
 
     discord_bot.run(config.discord_token)
 
