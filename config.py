@@ -6,7 +6,6 @@ class Configuration(object):
             with open(path, 'r') as f:
                 self._config = json.load(f)
             if self._config:
-                self.webhook_url = self._config["MAIN"]["WEBHOOK_URL"]
                 self.mc_username = self._config["MAIN"]["MC_USERNAME"]
                 self.mc_password = self._config["MAIN"]["MC_PASSWORD"]
                 self.mc_server = self._config["MAIN"]["MC_SERVER"]

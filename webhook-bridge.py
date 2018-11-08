@@ -28,7 +28,7 @@ from mcstatus import MinecraftServer
 from bidict import bidict
 
 UUID_CACHE = bidict()
-
+WEBHOOKS = []
 BOT_USERNAME = ""
 
 
@@ -132,8 +132,6 @@ def main():
     config = Configuration("config.json")
     setup_logging(config.logging_level)
 
-    webhook_url = config.webhook_url
-
     database_session.initialize(config)
 
     reactor_thread = Thread(target=run_auth_server, args=(config.auth_port,))
@@ -229,7 +227,8 @@ def main():
                     'content': '',
                     'embeds': [{'color': 65280, 'title': '**Joined the game**'}]
                 }
-                post = requests.post(webhook_url,json=webhook_payload)
+                for webhook in WEBHOOKS:
+                    post = requests.post(webhook,json=webhook_payload)
                 if action.name not in UUID_CACHE.inv:
                     UUID_CACHE.inv[action.name] = action.uuid
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
@@ -242,7 +241,8 @@ def main():
                     'content': '',
                     'embeds': [{'color': 16711680, 'title': '**Left the game**'}]
                 }
-                post = requests.post(webhook_url,json=webhook_payload)
+                for webhook in WEBHOOKS:
+                    post = requests.post(webhook,json=webhook_payload)
                 del UUID_CACHE[action.uuid]
 
     def handle_join_game(join_game_packet):
@@ -273,7 +273,8 @@ def main():
                 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                 'content': '{}'.format(message)
             }
-            post = requests.post(webhook_url,json=webhook_payload)
+            for webhook in WEBHOOKS:
+                post = requests.post(webhook, json=webhook_payload)
 
     def handle_health_update(health_update_packet):
         if health_update_packet.health <= 0:
@@ -289,6 +290,23 @@ def main():
     @discord_bot.event
     async def on_ready():
         logging.info("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
+        session = database_session.get_session()
+        channels = session.query(DiscordChannel).all()
+        session.close()
+        for channel in channels:
+            channel_id = channel.channel_id
+            discord_channel = discord_bot.get_channel(channel_id)
+            channel_webhooks = await discord_channel.webhooks()
+            found = False
+            for webhook in channel_webhooks:
+                if webhook.name == "_minecraft":
+                    global WEBHOOKS
+                    WEBHOOKS.append(webhook.url)
+                    found = True
+                logging.debug("Found webhook {} in channel {}".format(webhook.name, discord_channel.name))
+            if not found:
+                # Create the hook
+                await discord_channel.create_webhook(name="_minecraft")
 
     @discord_bot.event
     async def on_message(message):
@@ -296,6 +314,7 @@ def main():
         if message.author == discord_bot.user:
             return
         this_channel = message.channel.id
+        global WEBHOOKS
 
         # PM Commands
         if message.content.startswith("mc!help"):
@@ -385,6 +404,8 @@ def main():
                 session.commit()
                 session.close()
                 del session
+                webhook = await message.channel.create_webhook(name="_minecraft")
+                WEBHOOKS.append(webhook.url)
                 msg = "The bot will now start chatting here! To stop this, run `mc!stopchathere`."
                 await message.channel.send(msg)
             else:
@@ -418,6 +439,10 @@ def main():
             deleted = session.query(DiscordChannel).filter_by(channel_id=this_channel).delete()
             session.commit()
             session.close()
+            for webhook in message.channel:
+                if webhook.name == "_minecraft":
+                    del WEBHOOKS[webhook.url]
+                    await webhook.delete()
             if deleted < 1:
                 msg = "The bot was not chatting here!"
                 await message.channel.send(msg)
@@ -478,12 +503,18 @@ def main():
                         elif len(message_to_send) <= 0:
                             return
 
-                        webhook_payload = {
-                            'username': minecraft_username,
-                            'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
-                            'content': '{}'.format(message_to_discord)
-                        }
-                        post = requests.post(webhook_url, json=webhook_payload)
+                        session = database_session.get_session()
+                        channels = session.query(DiscordChannel).all()
+                        session.close()
+
+                        for channel in channels:
+                            webhooks = await discord_bot.get_channel(channel.channel_id).webhooks()
+                            for webhook in webhooks:
+                                if webhook.name == "_minecraft":
+                                    await webhook.send(
+                                        username=minecraft_username,
+                                        avatar_url="https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
+                                        content=message_to_discord)
 
                         packet = serverbound.play.ChatPacket()
                         packet.message = "{}: {}".format(minecraft_username, message_to_send)

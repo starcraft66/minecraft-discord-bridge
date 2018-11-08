@@ -1,6 +1,5 @@
 {
     "MAIN": {
-        "WEBHOOK_URL": "",
         "MC_USERNAME": "",
         "MC_PASSWORD": "",
         "MC_SERVER": "",
