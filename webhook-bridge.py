@@ -34,6 +34,7 @@ UUID_CACHE = bidict()
 
 BOT_USERNAME = ""
 
+
 def mc_uuid_to_username(uuid):
     if uuid not in UUID_CACHE:
         try:
@@ -56,7 +57,8 @@ def mc_uuid_to_username(uuid):
 def mc_username_to_uuid(username):
     if username not in UUID_CACHE.inv:
         try:
-            player_uuid = requests.get("https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
+            player_uuid = requests.get(
+                "https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
             UUID_CACHE.inv[username] = player_uuid
             return player_uuid
         except:
@@ -79,15 +81,16 @@ To start chatting on the minecraft server, please register your account using `m
 
 # https://stackoverflow.com/questions/33404752/removing-emojis-from-a-string-in-python
 def remove_emoji(string):
-    emoji_pattern = re.compile("["
-                           u"\U0001F600-\U0001F64F"  # emoticons
-                           u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-                           u"\U0001F680-\U0001F6FF"  # transport & map symbols
-                           u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-                           u"\U0001F900-\U0001FAFF"  # CJK Compatibility Ideographs
-    #                       u"\U00002702-\U000027B0"
-    #                       u"\U000024C2-\U0001F251"
-                           "]+", flags=re.UNICODE)
+    emoji_pattern = re.compile(
+        "["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U0001F900-\U0001FAFF"  # CJK Compatibility Ideographs
+        # u"\U00002702-\U000027B0"
+        # u"\U000024C2-\U0001F251"
+        "]+", flags=re.UNICODE)
     return emoji_pattern.sub(r'', string)
 
 
@@ -132,7 +135,7 @@ def main():
     config = Configuration("config.json")
     setup_logging(config.logging_level)
 
-    WEBHOOK_URL = config.webhook_url
+    webhook_url = config.webhook_url
 
     database_session.initialize(config)
 
@@ -162,8 +165,11 @@ def main():
             status = server.status()
             del status
             return True
-        except:
-            # The server is offline
+        except ConnectionRefusedError:
+            return False
+        # AttributeError: 'TCPSocketConnection' object has no attribute 'socket'
+        # This might not be required as it happens upstream
+        except AttributeError:
             return False
 
     logging.debug("Checking if the server {} is online before connecting.")
@@ -219,18 +225,26 @@ def main():
                 logging.debug("Processing AddPlayerAction tab list packet, name: {}, uuid: {}".format(action.name, action.uuid))
                 username = action.name
                 player_uuid = action.uuid
-                webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-                    'content': '', 'embeds': [{'color': 65280, 'title': '**Joined the game**'}]}
-                post = requests.post(WEBHOOK_URL,json=webhook_payload)
+                webhook_payload = {
+                    'username': username,
+                    'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                    'content': '',
+                    'embeds': [{'color': 65280, 'title': '**Joined the game**'}]
+                }
+                post = requests.post(webhook_url,json=webhook_payload)
                 if action.name not in UUID_CACHE.inv:
                     UUID_CACHE.inv[action.name] = action.uuid
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
                 logging.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
                 username = UUID_CACHE[action.uuid]
                 player_uuid = action.uuid
-                webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-                    'content': '', 'embeds': [{'color': 16711680, 'title': '**Left the game**'}]}
-                post = requests.post(WEBHOOK_URL,json=webhook_payload)
+                webhook_payload = {
+                    'username': username,
+                    'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                    'content': '',
+                    'embeds': [{'color': 16711680, 'title': '**Left the game**'}]
+                }
+                post = requests.post(webhook_url,json=webhook_payload)
                 del UUID_CACHE[action.uuid]
 
     def handle_join_game(join_game_packet):
@@ -256,13 +270,15 @@ def main():
             logging.info("Username: {} Message: {}".format(username, message))
             logging.debug("msg: {}".format(repr(message)))
             message = remove_emoji(message.strip().replace("@", "@\N{zero width space}"))
-            webhook_payload = {'username': username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-                           'content': '{}'.format(message)}
-            post = requests.post(WEBHOOK_URL,json=webhook_payload)    
+            webhook_payload = {
+                'username': username,
+                'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                'content': '{}'.format(message)
+            }
+            post = requests.post(webhook_url,json=webhook_payload)
 
     def handle_health_update(health_update_packet):
         if health_update_packet.health <= 0:
-            #We need to respawn!!!!
             logging.debug("Respawned the player because it died")
             packet = serverbound.play.ClientStatusPacket()
             packet.action_id = serverbound.play.ClientStatusPacket.RESPAWN
@@ -327,7 +343,8 @@ def main():
                 discord_account.link_token = account_link_token
                 session.add(account_link_token)
                 session.commit()
-                msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!".format(new_token, config.auth_dns, config.auth_port)
+                msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!"\
+                    .format(new_token, config.auth_dns, config.auth_port)
                 session.close()
                 await send_channel.send(msg)
             except discord.errors.Forbidden:
@@ -447,7 +464,8 @@ def main():
 
                         padding = len(BOT_USERNAME) + 5 + len(minecraft_username)
 
-                        message_to_send = remove_emoji(message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
+                        message_to_send = remove_emoji(
+                            message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
                         message_to_discord = message.clean_content
 
                         logging.info(str(len(message_to_send)) + " " + repr(message_to_send))
@@ -459,9 +477,12 @@ def main():
                         elif len(message_to_send) <= 0:
                             return
 
-                        webhook_payload = {'username': minecraft_username, 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
-                              'content': '{}'.format(message_to_discord)}
-                        post = requests.post(WEBHOOK_URL,json=webhook_payload)
+                        webhook_payload = {
+                            'username': minecraft_username,
+                            'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(minecraft_uuid),
+                            'content': '{}'.format(message_to_discord)
+                        }
+                        post = requests.post(webhook_url, json=webhook_payload)
 
                         packet = serverbound.play.ChatPacket()
                         packet.message = "{}: {}".format(minecraft_username, message_to_send)
@@ -473,7 +494,8 @@ def main():
                         if not dm_channel:
                             await message.author.create_dm()
                             send_channel = message.author.dm_channel
-                    msg = "Unable to send chat message: there is no Minecraft account linked to this discord account, please run `mc!register`."
+                    msg = "Unable to send chat message: there is no Minecraft account linked to this discord account," \
+                          "please run `mc!register`."
                     await send_channel.send(msg)
 
     discord_bot.run(config.discord_token)
