@@ -43,7 +43,7 @@ def mc_uuid_to_username(uuid):
             mojang_response = requests.get("https://api.mojang.com/user/profiles/{}/names".format(short_uuid)).json()
             if len(mojang_response) > 1:
                 # Multiple name changes
-                player_username = mojang_response[:-1]["name"]
+                player_username = mojang_response[-1]["name"]
             else:
                 # Only one name
                 player_username = mojang_response[0]["name"]
