@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import sys
 import re
+from enum import Enum
+
 import requests
 import json
 import time
@@ -16,6 +18,8 @@ from database import DiscordChannel, AccountLinkToken, DiscordAccount
 import database_session
 
 from datetime import datetime, timedelta, timezone
+import elasticsearch_logger
+from elasticsearch_logger import es_chat_message, es_connection, es_raw_message, ConnectionReason
 
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
@@ -133,12 +137,21 @@ def generate_random_auth_token(length):
     return ''.join(random.choice(letters) for i in range(length))
 
 
+# TODO: Get rid of this when pycraft's enum becomes usable
+class ChatType(Enum):
+    CHAT = 0  # A player-initiated chat message.
+    SYSTEM = 1  # The result of running a command.
+    GAME_INFO = 2  # Displayed above the hotbar in vanilla clients.
+
+
 def main():
     global BOT_USERNAME
     config = Configuration("config.json")
     setup_logging(config.logging_level)
 
     database_session.initialize(config)
+    if config.es_enabled:
+        elasticsearch_logger.initialize(config)
 
     reactor_thread = Thread(target=run_auth_server, args=(config.auth_port,))
     reactor_thread.start()
@@ -229,6 +242,10 @@ def main():
                     "Processing AddPlayerAction tab list packet, name: {}, uuid: {}".format(action.name, action.uuid))
                 username = action.name
                 player_uuid = action.uuid
+                if action.name not in PLAYER_LIST.inv:
+                    PLAYER_LIST.inv[action.name] = action.uuid
+                if action.name not in UUID_CACHE.inv:
+                    UUID_CACHE.inv[action.name] = action.uuid
                 # Initial tablist backfill
                 if LAST_CONNECTION_TIME + timedelta(seconds=2.5) < datetime.now(timezone.utc):
                     webhook_payload = {
@@ -239,10 +256,11 @@ def main():
                     }
                     for webhook in WEBHOOKS:
                         post = requests.post(webhook,json=webhook_payload)
-                if action.name not in UUID_CACHE.inv:
-                    UUID_CACHE.inv[action.name] = action.uuid
-                if action.name not in PLAYER_LIST.inv:
-                    PLAYER_LIST.inv[action.name] = action.uuid
+                    if config.es_enabled:
+                        es_connection(uuid=action.uuid, reason=ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
+                    return
+                if config.es_enabled:
+                    es_connection(uuid=action.uuid, reason=ConnectionReason.SEEN)
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
                 logging.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
                 username = UUID_CACHE[action.uuid]
@@ -255,6 +273,8 @@ def main():
                 }
                 for webhook in WEBHOOKS:
                     post = requests.post(webhook,json=webhook_payload)
+                if config.es_enabled:
+                    es_connection(uuid=action.uuid, reason=ConnectionReason.DISCONNECTED, count=len(PLAYER_LIST))
                 del UUID_CACHE[action.uuid]
                 del PLAYER_LIST[action.uuid]
 
@@ -279,11 +299,11 @@ def main():
             if username.lower() == BOT_USERNAME.lower():
                 # Don't relay our own messages
                 return
-            message = regexp_match.group(2)
+            original_message = regexp_match.group(2)
             player_uuid = mc_username_to_uuid(username)
-            logging.info("Username: {} Message: {}".format(username, message))
-            logging.debug("msg: {}".format(repr(message)))
-            message = remove_emoji(message.strip().replace("@", "@\N{zero width space}"))
+            logging.info("Username: {} Message: {}".format(username, original_message))
+            logging.debug("msg: {}".format(repr(original_message)))
+            message = remove_emoji(original_message.strip().replace("@", "@\N{zero width space}"))
             webhook_payload = {
                 'username': username,
                 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
@@ -291,6 +311,11 @@ def main():
             }
             for webhook in WEBHOOKS:
                 post = requests.post(webhook, json=webhook_payload)
+            if config.es_enabled:
+                es_chat_message(
+                    uuid=player_uuid, display_name=username, message=original_message, message_unformatted=chat_string)
+        if config.es_enabled:
+            es_raw_message(type=ChatType(chat_packet.position).name, message=chat_packet.json_data)
 
     def handle_health_update(health_update_packet):
         if health_update_packet.health <= 0:

@@ -20,6 +20,11 @@ class Configuration(object):
                 self.auth_port = self._config["AUTH_SERVER"]["PORT"]
                 self.auth_dns = self._config["AUTH_SERVER"]["DNS_WILDCARD"]
                 self.database_connection_string = self._config["DATABASE"]["CONNECTION_STRING"]
+                self.es_enabled = self._config["ELASTICSEARCH"]["ENABLED"]
+                self.es_url = self._config["ELASTICSEARCH"]["URL"]
+                self.es_auth = self._config["ELASTICSEARCH"]["AUTH"]
+                self.es_username = self._config["ELASTICSEARCH"]["USERNAME"]
+                self.es_password = self._config["ELASTICSEARCH"]["PASSWORD"]
             else:
                 print("error reading config")
                 exit(1)

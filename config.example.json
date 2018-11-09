@@ -19,5 +19,12 @@
     },
     "DATABASE": {
         "CONNECTION_STRING": "sqlite:////data/db.sqlite"
+    },
+    "ELASTICSEARCH": {
+        "ENABLED": false,
+        "URL": "",
+        "AUTH": false,
+        "USERNAME": "",
+        "PASSWORD": ""
     }
 }
