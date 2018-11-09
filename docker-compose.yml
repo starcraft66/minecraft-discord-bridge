@@ -7,4 +7,4 @@ services:
     volumes:
       - ./:/app:Z
       - ./:/data:Z
-      - ../pyCraft:/pyCraft:Z
+    restart: always
