@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 
 from database_session import Base
 
+
 class DiscordChannel(Base):
     __tablename__ = 'discord_channels'
 
@@ -51,8 +52,10 @@ class DiscordAccount(Base):
     discord_id = Column(Integer)
     link_token_id = Column(Integer, ForeignKey('account_link_tokens.id'))
     minecraft_account_id = Column(Integer, ForeignKey('minecraft_accounts.id'))
-    link_token = relationship("AccountLinkToken", uselist=False, foreign_keys=[link_token_id], back_populates="discord_account")
-    minecraft_account = relationship("MinecraftAccount", uselist=False, foreign_keys=[minecraft_account_id], back_populates="discord_account")
+    link_token = relationship(
+        "AccountLinkToken", uselist=False, foreign_keys=[link_token_id], back_populates="discord_account")
+    minecraft_account = relationship(
+        "MinecraftAccount", uselist=False, foreign_keys=[minecraft_account_id], back_populates="discord_account")
 
     def __init__(self, discord_id):
         self.discord_id = discord_id

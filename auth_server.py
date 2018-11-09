@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timezone
 
 from quarry.net.server import ServerFactory, ServerProtocol
@@ -31,7 +30,8 @@ class AuthProtocol(ServerProtocol):
         
         connect_port = self.connect_port
 
-        self.logger.info("[AUTH SERVER] {} ({}) connected to address {}:{}".format(display_name, uuid, ip_addr, connect_port))
+        self.logger.info("[AUTH SERVER] {} ({}) connected to address {}:{}".format(
+            display_name, uuid, ip_addr, connect_port))
         try:
             connection_token = ip_addr.split(".")[0]
             session = database_session.get_session()
@@ -48,8 +48,10 @@ class AuthProtocol(ServerProtocol):
             if datetime.utcnow() < token.expiry:
                 # Check if they already have a linked account and are re-linking
                 if discord_account.minecraft_account_id != None:
-                    existing_account = session.query(MinecraftAccount).filter_by(id=discord_account.minecraft_account_id).first()
-                    self.logger.info("[AUTH SERVER] unlinking existing {} account and replacing it with {}".format(existing_account.minecraft_uuid, str(uuid)))
+                    existing_account = session.query(MinecraftAccount).filter_by(
+                        id=discord_account.minecraft_account_id).first()
+                    self.logger.info("[AUTH SERVER] unlinking existing {} account and replacing it with {}".format(
+                        existing_account.minecraft_uuid, str(uuid)))
                     session.delete(existing_account)
                 mc_account = MinecraftAccount(str(uuid), discord_account.id)
                 discord_account.minecraft_account = mc_account
@@ -63,13 +65,13 @@ class AuthProtocol(ServerProtocol):
                 session.delete(token)
                 session.commit()
                 session.close()
-                self.close("You have connected with an expired token! Please run the mc!register command again to get a new token.")
+                self.close("You have connected with an expired token! "
+                           "Please run the mc!register command again to get a new token.")
                 return
 
         except Exception as e:
             self.logger.error(e)
             session.close()
-
 
         # Kick the player.
         self.close("This shouldn't happen!")

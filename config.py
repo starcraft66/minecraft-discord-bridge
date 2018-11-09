@@ -1,5 +1,6 @@
 import json
 
+
 class Configuration(object):
     def __init__(self, path):
         try:
