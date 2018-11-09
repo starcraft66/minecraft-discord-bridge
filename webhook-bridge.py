@@ -34,6 +34,8 @@ WEBHOOKS = []
 BOT_USERNAME = ""
 NEXT_MESSAGE_TIME = datetime.now(timezone.utc)
 PREVIOUS_MESSAGE = ""
+PLAYER_LIST = bidict()
+MOTD = "Not yet implemented"
 
 
 def mc_uuid_to_username(uuid):
@@ -69,15 +71,14 @@ def mc_username_to_uuid(username):
 
         
 def get_discord_help_string():
-    help = "\
-Admin commands:\n\
-`mc!chathere`: Starts outputting server messages in this channel\n\
-`mc!stopchathere`: Stops outputting server messages in this channel\n\
-User commands:\n\
-`mc!register`: Starts the minecraft account registration process\n\
-To start chatting on the minecraft server, please register your account using `mc!register`.\
-    "
-    return help
+    help_str = ("Admin commands:\n"
+                "`mc!chathere`: Starts outputting server messages in this channel\n"
+                "`mc!stopchathere`: Stops outputting server messages in this channel\n"
+                "User commands:\n"
+                "`mc!tab`: Sends you the content of the server's player/tab list\n"
+                "`mc!register`: Starts the minecraft account registration process\n"
+                "To start chatting on the minecraft server, please register your account using `mc!register`.")
+    return help_str
 
 
 # https://stackoverflow.com/questions/33404752/removing-emojis-from-a-string-in-python
@@ -143,6 +144,7 @@ def main():
 
     def handle_disconnect():
         logging.info('Disconnected.')
+        PLAYER_LIST = bidict()
         connection.disconnect(immediate=True)
         time.sleep(15)
         while not is_server_online():
@@ -235,6 +237,8 @@ def main():
                     post = requests.post(webhook,json=webhook_payload)
                 if action.name not in UUID_CACHE.inv:
                     UUID_CACHE.inv[action.name] = action.uuid
+                if action.name not in PLAYER_LIST.inv:
+                    PLAYER_LIST.inv[action.name] = action.uuid
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
                 logging.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
                 username = UUID_CACHE[action.uuid]
@@ -248,9 +252,12 @@ def main():
                 for webhook in WEBHOOKS:
                     post = requests.post(webhook,json=webhook_payload)
                 del UUID_CACHE[action.uuid]
+                del PLAYER_LIST[action.uuid]
 
     def handle_join_game(join_game_packet):
+        global PLAYER_LIST
         logging.info('Connected.')
+        PLAYER_LIST = bidict()
 
     def handle_chat(chat_packet):
         json_data = json.loads(chat_packet.json_data)
@@ -455,6 +462,28 @@ def main():
             else:
                 msg = "The bot will no longer here!"
                 await message.channel.send(msg)
+                return
+
+        elif message.content.startswith("mc!tab"):
+            send_channel = message.channel
+            try:
+                if isinstance(message.channel, discord.abc.GuildChannel):
+                    await message.delete()
+                    dm_channel = message.author.dm_channel
+                    if not dm_channel:
+                        await message.author.create_dm()
+                    send_channel = message.author.dm_channel
+                player_list = ", ".join(list(map(lambda x: x[1], PLAYER_LIST.items())))
+                msg = "MOTD: {}\n" \
+                      "Players online: {}".format(MOTD, player_list)
+                await send_channel.send(msg)
+            except discord.errors.Forbidden:
+                if isinstance(message.author, discord.abc.User):
+                    msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                    error_msg = await message.channel.send(msg)
+                    await asyncio.sleep(3)
+                    await error_msg.delete()
+            finally:
                 return
 
         elif message.content.startswith("mc!"):
