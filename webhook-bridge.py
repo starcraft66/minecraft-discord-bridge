@@ -296,11 +296,21 @@ def main():
         regexp_match = re.match("<(.*?)> (.*)", chat_string, re.M|re.I)
         if regexp_match:
             username = regexp_match.group(1)
-            if username.lower() == BOT_USERNAME.lower():
-                # Don't relay our own messages
-                return
             original_message = regexp_match.group(2)
             player_uuid = mc_username_to_uuid(username)
+            if username.lower() == BOT_USERNAME.lower():
+                # Don't relay our own messages
+                if config.es_enabled:
+                    bot_message_match = re.match("<{}> (.*?): (.*)".format(
+                        BOT_USERNAME.lower()), chat_string, re.M | re.I)
+                    if bot_message_match:
+                        es_chat_message(
+                            uuid=UUID_CACHE.inv[bot_message_match.group(1)],
+                            display_name=bot_message_match.group(1),
+                            message=bot_message_match.group(2),
+                            message_unformatted=chat_string)
+                        es_raw_message(type=ChatType(chat_packet.position).name, message=chat_packet.json_data)
+                return
             logging.info("Username: {} Message: {}".format(username, original_message))
             logging.debug("msg: {}".format(repr(original_message)))
             message = remove_emoji(original_message.strip().replace("@", "@\N{zero width space}"))
