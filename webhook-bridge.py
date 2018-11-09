@@ -39,7 +39,8 @@ BOT_USERNAME = ""
 NEXT_MESSAGE_TIME = datetime.now(timezone.utc)
 PREVIOUS_MESSAGE = ""
 PLAYER_LIST = bidict()
-MOTD = "Not yet implemented"
+TAB_HEADER = ""
+TAB_FOOTER = ""
 LAST_CONNECTION_TIME = datetime.now(timezone.utc)
 
 
@@ -99,6 +100,13 @@ def remove_emoji(string):
         # u"\U000024C2-\U0001F251"
         "]+", flags=re.UNICODE)
     return emoji_pattern.sub(r'', string)
+
+
+def strip_colour(string):
+    colour_pattern = re.compile(
+        u"\U000000A7"  # selection symbol
+        ".", flags=re.UNICODE)
+    return colour_pattern.sub(r'', string)
 
 
 def setup_logging(level):
@@ -233,6 +241,18 @@ def main():
 
         connection.register_packet_listener(
             handle_tab_list, clientbound.play.PlayerListItemPacket)
+
+        connection.register_packet_listener(
+            handle_player_list_header_and_footer_update, clientbound.play.PlayerListHeaderAndFooterPacket)
+
+    def handle_player_list_header_and_footer_update(header_footer_packet):
+        global TAB_FOOTER, TAB_HEADER
+        logging.debug("Got Tablist H/F Update: header={}".format(header_footer_packet.header))
+        logging.debug("Got Tablist H/F Update: footer={}".format(header_footer_packet.footer))
+        # Strip out colour codes
+
+        TAB_HEADER = strip_colour(json.loads(header_footer_packet.header)["text"])
+        TAB_FOOTER = strip_colour(json.loads(header_footer_packet.footer)["text"])
 
     def handle_tab_list(tab_list_packet):
         logging.debug("Processing tab list packet")
@@ -514,8 +534,9 @@ def main():
                         await message.author.create_dm()
                     send_channel = message.author.dm_channel
                 player_list = ", ".join(list(map(lambda x: x[1], PLAYER_LIST.items())))
-                msg = "MOTD: {}\n" \
-                      "Players online: {}".format(MOTD, player_list)
+                msg = "{}\n" \
+                    "Players online: {}\n" \
+                    "{}".format(TAB_HEADER, player_list, TAB_FOOTER)
                 await send_channel.send(msg)
             except discord.errors.Forbidden:
                 if isinstance(message.author, discord.abc.User):
