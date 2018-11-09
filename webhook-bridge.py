@@ -36,6 +36,7 @@ NEXT_MESSAGE_TIME = datetime.now(timezone.utc)
 PREVIOUS_MESSAGE = ""
 PLAYER_LIST = bidict()
 MOTD = "Not yet implemented"
+LAST_CONNECTION_TIME = datetime.now(timezone.utc)
 
 
 def mc_uuid_to_username(uuid):
@@ -144,6 +145,7 @@ def main():
 
     def handle_disconnect():
         logging.info('Disconnected.')
+        global PLAYER_LIST
         PLAYER_LIST = bidict()
         connection.disconnect(immediate=True)
         time.sleep(15)
@@ -227,14 +229,16 @@ def main():
                     "Processing AddPlayerAction tab list packet, name: {}, uuid: {}".format(action.name, action.uuid))
                 username = action.name
                 player_uuid = action.uuid
-                webhook_payload = {
-                    'username': username,
-                    'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-                    'content': '',
-                    'embeds': [{'color': 65280, 'title': '**Joined the game**'}]
-                }
-                for webhook in WEBHOOKS:
-                    post = requests.post(webhook,json=webhook_payload)
+                # Initial tablist backfill
+                if LAST_CONNECTION_TIME + timedelta(seconds=2.5) < datetime.now(timezone.utc):
+                    webhook_payload = {
+                        'username': username,
+                        'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                        'content': '',
+                        'embeds': [{'color': 65280, 'title': '**Joined the game**'}]
+                    }
+                    for webhook in WEBHOOKS:
+                        post = requests.post(webhook,json=webhook_payload)
                 if action.name not in UUID_CACHE.inv:
                     UUID_CACHE.inv[action.name] = action.uuid
                 if action.name not in PLAYER_LIST.inv:
@@ -255,7 +259,8 @@ def main():
                 del PLAYER_LIST[action.uuid]
 
     def handle_join_game(join_game_packet):
-        global PLAYER_LIST
+        global PLAYER_LIST, LAST_CONNECTION_TIME
+        LAST_CONNECTION_TIME = datetime.now(timezone.utc)
         logging.info('Connected.')
         PLAYER_LIST = bidict()
 
