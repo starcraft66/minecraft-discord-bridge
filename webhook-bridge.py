@@ -257,9 +257,8 @@ def main():
         global TAB_FOOTER, TAB_HEADER
         logging.debug("Got Tablist H/F Update: header={}".format(header_footer_packet.header))
         logging.debug("Got Tablist H/F Update: footer={}".format(header_footer_packet.footer))
-        # Strip out colour codes and some markdown
-        TAB_HEADER = escape_markdown(strip_colour(json.loads(header_footer_packet.header)["text"]))
-        TAB_FOOTER = escape_markdown(strip_colour(json.loads(header_footer_packet.footer)["text"]))
+        TAB_HEADER = json.loads(header_footer_packet.header)["text"]
+        TAB_FOOTER = json.loads(header_footer_packet.footer)["text"]
 
     def handle_tab_list(tab_list_packet):
         logging.debug("Processing tab list packet")
@@ -543,7 +542,10 @@ def main():
                 player_list = ", ".join(list(map(lambda x: x[1], PLAYER_LIST.items())))
                 msg = "{}\n" \
                     "Players online: {}\n" \
-                    "{}".format(TAB_HEADER, player_list, TAB_FOOTER)
+                    "{}".format(escape_markdown(
+                        strip_colour(TAB_HEADER)), escape_markdown(
+                        strip_colour(player_list)), escape_markdown(
+                        strip_colour(TAB_FOOTER)))
                 await send_channel.send(msg)
             except discord.errors.Forbidden:
                 if isinstance(message.author, discord.abc.User):
