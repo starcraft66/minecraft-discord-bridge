@@ -595,7 +595,7 @@ def main():
 
                         message_to_send = remove_emoji(
                             message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
-                        message_to_discord = message.clean_content
+                        message_to_discord = escape_markdown(message.clean_content)
 
                         logging.info(str(len(message_to_send)) + " " + repr(message_to_send))
 
