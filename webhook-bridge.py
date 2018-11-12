@@ -39,9 +39,10 @@ BOT_USERNAME = ""
 NEXT_MESSAGE_TIME = datetime.now(timezone.utc)
 PREVIOUS_MESSAGE = ""
 PLAYER_LIST = bidict()
+PREVIOUS_PLAYER_LIST = bidict()
+ACCEPT_JOIN_EVENTS = True
 TAB_HEADER = ""
 TAB_FOOTER = ""
-LAST_CONNECTION_TIME = datetime.now(timezone.utc)
 
 
 def mc_uuid_to_username(uuid):
@@ -174,7 +175,9 @@ def main():
 
     def handle_disconnect():
         logging.info('Disconnected.')
-        global PLAYER_LIST
+        global PLAYER_LIST, PREVIOUS_PLAYER_LIST, ACCEPT_JOIN_EVENTS
+        PREVIOUS_PLAYER_LIST = PLAYER_LIST.copy()
+        ACCEPT_JOIN_EVENTS = False
         PLAYER_LIST = bidict()
         connection.disconnect(immediate=True)
         time.sleep(15)
@@ -261,6 +264,7 @@ def main():
         TAB_FOOTER = json.loads(header_footer_packet.footer)["text"]
 
     def handle_tab_list(tab_list_packet):
+        global ACCEPT_JOIN_EVENTS
         logging.debug("Processing tab list packet")
         for action in tab_list_packet.actions:
             if isinstance(action, clientbound.play.PlayerListItemPacket.AddPlayerAction):
@@ -273,7 +277,7 @@ def main():
                 if action.name not in UUID_CACHE.inv:
                     UUID_CACHE.inv[action.name] = action.uuid
                 # Initial tablist backfill
-                if LAST_CONNECTION_TIME + timedelta(seconds=2.5) < datetime.now(timezone.utc):
+                if ACCEPT_JOIN_EVENTS:
                     webhook_payload = {
                         'username': username,
                         'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
@@ -285,6 +289,15 @@ def main():
                     if config.es_enabled:
                         es_connection(uuid=action.uuid, reason=ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
                     return
+                else:
+                    # The bot's name is sent last after the initial back-fill
+                    if action.name == BOT_USERNAME:
+                        ACCEPT_JOIN_EVENTS = True
+                        if config.es_enabled:
+                            diff = set(PREVIOUS_PLAYER_LIST.keys()) - set(PLAYER_LIST.keys())
+                            for uuid in diff:
+                                es_connection(uuid=uuid, reason=ConnectionReason.DISCONNECTED, count=len(PLAYER_LIST))
+
                 if config.es_enabled:
                     es_connection(uuid=action.uuid, reason=ConnectionReason.SEEN)
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
@@ -305,8 +318,7 @@ def main():
                 del PLAYER_LIST[action.uuid]
 
     def handle_join_game(join_game_packet):
-        global PLAYER_LIST, LAST_CONNECTION_TIME
-        LAST_CONNECTION_TIME = datetime.now(timezone.utc)
+        global PLAYER_LIST
         logging.info('Connected.')
         PLAYER_LIST = bidict()
 
