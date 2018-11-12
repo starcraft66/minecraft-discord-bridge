@@ -7,3 +7,4 @@ services:
     volumes:
       - ./:/app:Z
       - ./:/data:Z
+    restart: always
