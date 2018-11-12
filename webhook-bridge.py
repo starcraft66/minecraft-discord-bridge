@@ -102,6 +102,14 @@ def remove_emoji(string):
     return emoji_pattern.sub(r'', string)
 
 
+def escape_markdown(string):
+    # Absolutely needs to go first or it will replace our escaping slashes!
+    string = string.replace("\\", "\\\\")
+    string = string.replace("_", "\\_")
+    string = string.replace("*", "\\*")
+    return string
+
+
 def strip_colour(string):
     colour_pattern = re.compile(
         u"\U000000A7"  # selection symbol
@@ -249,10 +257,8 @@ def main():
         global TAB_FOOTER, TAB_HEADER
         logging.debug("Got Tablist H/F Update: header={}".format(header_footer_packet.header))
         logging.debug("Got Tablist H/F Update: footer={}".format(header_footer_packet.footer))
-        # Strip out colour codes
-
-        TAB_HEADER = strip_colour(json.loads(header_footer_packet.header)["text"])
-        TAB_FOOTER = strip_colour(json.loads(header_footer_packet.footer)["text"])
+        TAB_HEADER = json.loads(header_footer_packet.header)["text"]
+        TAB_FOOTER = json.loads(header_footer_packet.footer)["text"]
 
     def handle_tab_list(tab_list_packet):
         logging.debug("Processing tab list packet")
@@ -333,7 +339,7 @@ def main():
                 return
             logging.info("Username: {} Message: {}".format(username, original_message))
             logging.debug("msg: {}".format(repr(original_message)))
-            message = remove_emoji(original_message.strip().replace("@", "@\N{zero width space}"))
+            message = escape_markdown(remove_emoji(original_message.strip().replace("@", "@\N{zero width space}")))
             webhook_payload = {
                 'username': username,
                 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
@@ -536,7 +542,10 @@ def main():
                 player_list = ", ".join(list(map(lambda x: x[1], PLAYER_LIST.items())))
                 msg = "{}\n" \
                     "Players online: {}\n" \
-                    "{}".format(TAB_HEADER, player_list, TAB_FOOTER)
+                    "{}".format(escape_markdown(
+                        strip_colour(TAB_HEADER)), escape_markdown(
+                        strip_colour(player_list)), escape_markdown(
+                        strip_colour(TAB_FOOTER)))
                 await send_channel.send(msg)
             except discord.errors.Forbidden:
                 if isinstance(message.author, discord.abc.User):
@@ -588,7 +597,7 @@ def main():
 
                         message_to_send = remove_emoji(
                             message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
-                        message_to_discord = message.clean_content
+                        message_to_discord = escape_markdown(message.clean_content)
 
                         logging.info(str(len(message_to_send)) + " " + repr(message_to_send))
 
