@@ -274,6 +274,9 @@ def main():
                 player_uuid = action.uuid
                 if action.name not in PLAYER_LIST.inv:
                     PLAYER_LIST.inv[action.name] = action.uuid
+                else:
+                    # Sometimes we get a duplicate add packet on join idk why
+                    return
                 if action.name not in UUID_CACHE.inv:
                     UUID_CACHE.inv[action.name] = action.uuid
                 # Initial tablist backfill
@@ -295,8 +298,12 @@ def main():
                         ACCEPT_JOIN_EVENTS = True
                         if config.es_enabled:
                             diff = set(PREVIOUS_PLAYER_LIST.keys()) - set(PLAYER_LIST.keys())
-                            for uuid in diff:
-                                es_connection(uuid=uuid, reason=ConnectionReason.DISCONNECTED, count=len(PLAYER_LIST))
+                            for idx, uuid in enumerate(diff):
+                                es_connection(uuid=uuid, reason=ConnectionReason.DISCONNECTED,
+                                              count=len(PREVIOUS_PLAYER_LIST) - (idx + 1))
+                    # Don't bother announcing the bot's own join message (who cares) but log it for analytics still
+                    if config.es_enabled:
+                        es_connection(uuid=action.uuid, reason=ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
 
                 if config.es_enabled:
                     es_connection(uuid=action.uuid, reason=ConnectionReason.SEEN)
@@ -312,10 +319,10 @@ def main():
                 }
                 for webhook in WEBHOOKS:
                     post = requests.post(webhook,json=webhook_payload)
-                if config.es_enabled:
-                    es_connection(uuid=action.uuid, reason=ConnectionReason.DISCONNECTED, count=len(PLAYER_LIST))
                 del UUID_CACHE[action.uuid]
                 del PLAYER_LIST[action.uuid]
+                if config.es_enabled:
+                    es_connection(uuid=action.uuid, reason=ConnectionReason.DISCONNECTED, count=len(PLAYER_LIST))
 
     def handle_join_game(join_game_packet):
         global PLAYER_LIST
