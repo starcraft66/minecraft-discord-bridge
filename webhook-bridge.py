@@ -18,9 +18,7 @@ from database import DiscordChannel, AccountLinkToken, DiscordAccount
 import database_session
 
 from datetime import datetime, timedelta, timezone
-import elasticsearch_logger
-from elasticsearch_logger import es_chat_message, es_connection, es_raw_message, ConnectionReason
-
+import elasticsearch_logger as el
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
 from minecraft.networking.connection import Connection
@@ -168,7 +166,7 @@ def main():
 
     database_session.initialize(config)
     if config.es_enabled:
-        elasticsearch_logger.initialize(config)
+        el.initialize(config)
 
     reactor_thread = Thread(target=run_auth_server, args=(config.auth_port,))
     reactor_thread.start()
@@ -290,7 +288,8 @@ def main():
                     for webhook in WEBHOOKS:
                         post = requests.post(webhook,json=webhook_payload)
                     if config.es_enabled:
-                        es_connection(uuid=action.uuid, reason=ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
+                        el.log_connection(
+                            uuid=action.uuid, reason=el.ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
                     return
                 else:
                     # The bot's name is sent last after the initial back-fill
@@ -299,14 +298,15 @@ def main():
                         if config.es_enabled:
                             diff = set(PREVIOUS_PLAYER_LIST.keys()) - set(PLAYER_LIST.keys())
                             for idx, uuid in enumerate(diff):
-                                es_connection(uuid=uuid, reason=ConnectionReason.DISCONNECTED,
+                                el.log_connection(uuid=uuid, reason=el.ConnectionReason.DISCONNECTED,
                                               count=len(PREVIOUS_PLAYER_LIST) - (idx + 1))
                     # Don't bother announcing the bot's own join message (who cares) but log it for analytics still
                     if config.es_enabled:
-                        es_connection(uuid=action.uuid, reason=ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
+                        el.log_connection(
+                            uuid=action.uuid, reason=el.ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
 
                 if config.es_enabled:
-                    es_connection(uuid=action.uuid, reason=ConnectionReason.SEEN)
+                    el.log_connection(uuid=action.uuid, reason=el.ConnectionReason.SEEN)
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
                 logging.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
                 username = UUID_CACHE[action.uuid]
@@ -322,7 +322,7 @@ def main():
                 del UUID_CACHE[action.uuid]
                 del PLAYER_LIST[action.uuid]
                 if config.es_enabled:
-                    es_connection(uuid=action.uuid, reason=ConnectionReason.DISCONNECTED, count=len(PLAYER_LIST))
+                    el.log_connection(uuid=action.uuid, reason=el.ConnectionReason.DISCONNECTED, count=len(PLAYER_LIST))
 
     def handle_join_game(join_game_packet):
         global PLAYER_LIST
@@ -349,12 +349,12 @@ def main():
                     bot_message_match = re.match("<{}> (.*?): (.*)".format(
                         BOT_USERNAME.lower()), chat_string, re.M | re.I)
                     if bot_message_match:
-                        es_chat_message(
+                        el.log_chat_message(
                             uuid=UUID_CACHE.inv[bot_message_match.group(1)],
                             display_name=bot_message_match.group(1),
                             message=bot_message_match.group(2),
                             message_unformatted=chat_string)
-                        es_raw_message(type=ChatType(chat_packet.position).name, message=chat_packet.json_data)
+                        el.log_raw_message(type=ChatType(chat_packet.position).name, message=chat_packet.json_data)
                 return
             logging.info("Username: {} Message: {}".format(username, original_message))
             logging.debug("msg: {}".format(repr(original_message)))
@@ -367,10 +367,10 @@ def main():
             for webhook in WEBHOOKS:
                 post = requests.post(webhook, json=webhook_payload)
             if config.es_enabled:
-                es_chat_message(
+                el.log_chat_message(
                     uuid=player_uuid, display_name=username, message=original_message, message_unformatted=chat_string)
         if config.es_enabled:
-            es_raw_message(type=ChatType(chat_packet.position).name, message=chat_packet.json_data)
+            el.log_raw_message(type=ChatType(chat_packet.position).name, message=chat_packet.json_data)
 
     def handle_health_update(health_update_packet):
         if health_update_packet.health <= 0:

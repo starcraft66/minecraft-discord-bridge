@@ -19,7 +19,7 @@ def initialize(config):
     _url = config.es_url
 
 
-def es_connection(uuid, reason, count=0):
+def log_connection(uuid, reason, count=0):
     if ConnectionReason(reason).name != "SEEN":
         es_payload = {
             "uuid": uuid,
@@ -33,10 +33,10 @@ def es_connection(uuid, reason, count=0):
             "time": (lambda: int(round(time.time() * 1000)))(),
             "reason": ConnectionReason(reason).name,
         }
-    es_post_request("connections/_doc/", es_payload)
+        post_request("connections/_doc/", es_payload)
 
 
-def es_chat_message(uuid, display_name, message, message_unformatted):
+def log_chat_message(uuid, display_name, message, message_unformatted):
     es_payload = {
         "uuid": uuid,
         "display_name": display_name,
@@ -44,19 +44,19 @@ def es_chat_message(uuid, display_name, message, message_unformatted):
         "message_unformatted": message_unformatted,
         "time": (lambda: int(round(time.time() * 1000)))(),
     }
-    es_post_request("chat_messages/_doc/", es_payload)
+    post_request("chat_messages/_doc/", es_payload)
 
 
-def es_raw_message(type, message):
+def log_raw_message(type, message):
     es_payload = {
         "time": (lambda: int(round(time.time() * 1000)))(),
         "type": type,
         "message": message,
     }
-    es_post_request("raw_messages/_doc/", es_payload)
+    post_request("raw_messages/_doc/", es_payload)
 
 
-def es_post_request(endpoint, payload):
+def post_request(endpoint, payload):
     the_url = "{}{}".format(_url, endpoint)
     if _auth:
         post = requests.post(the_url, auth=(_username, _password), json=payload)
