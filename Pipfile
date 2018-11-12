@@ -14,7 +14,7 @@ mcstatus = "*"
 quarry = "*"
 discord-py = {git = "https://github.com/Rapptz/discord.py.git", ref = "rewrite"}
 bidict = "*"
-minecraft = {git = "https://github.com/starcraft66/pyCraft.git", ref = "feature/add-player-list-header-and-footer-packet"}
+minecraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
 
 [requires]
 python_version = "3.6"
