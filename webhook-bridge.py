@@ -39,8 +39,10 @@ BOT_USERNAME = ""
 NEXT_MESSAGE_TIME = datetime.now(timezone.utc)
 PREVIOUS_MESSAGE = ""
 PLAYER_LIST = bidict()
-MOTD = "Not yet implemented"
-LAST_CONNECTION_TIME = datetime.now(timezone.utc)
+PREVIOUS_PLAYER_LIST = bidict()
+ACCEPT_JOIN_EVENTS = False
+TAB_HEADER = ""
+TAB_FOOTER = ""
 
 
 def mc_uuid_to_username(uuid):
@@ -101,6 +103,21 @@ def remove_emoji(string):
     return emoji_pattern.sub(r'', string)
 
 
+def escape_markdown(string):
+    # Absolutely needs to go first or it will replace our escaping slashes!
+    string = string.replace("\\", "\\\\")
+    string = string.replace("_", "\\_")
+    string = string.replace("*", "\\*")
+    return string
+
+
+def strip_colour(string):
+    colour_pattern = re.compile(
+        u"\U000000A7"  # selection symbol
+        ".", flags=re.UNICODE)
+    return colour_pattern.sub(r'', string)
+
+
 def setup_logging(level):
     if level.lower() == "debug":
         log_level = logging.DEBUG
@@ -158,7 +175,9 @@ def main():
 
     def handle_disconnect():
         logging.info('Disconnected.')
-        global PLAYER_LIST
+        global PLAYER_LIST, PREVIOUS_PLAYER_LIST, ACCEPT_JOIN_EVENTS
+        PREVIOUS_PLAYER_LIST = PLAYER_LIST.copy()
+        ACCEPT_JOIN_EVENTS = False
         PLAYER_LIST = bidict()
         connection.disconnect(immediate=True)
         time.sleep(15)
@@ -234,7 +253,18 @@ def main():
         connection.register_packet_listener(
             handle_tab_list, clientbound.play.PlayerListItemPacket)
 
+        connection.register_packet_listener(
+            handle_player_list_header_and_footer_update, clientbound.play.PlayerListHeaderAndFooterPacket)
+
+    def handle_player_list_header_and_footer_update(header_footer_packet):
+        global TAB_FOOTER, TAB_HEADER
+        logging.debug("Got Tablist H/F Update: header={}".format(header_footer_packet.header))
+        logging.debug("Got Tablist H/F Update: footer={}".format(header_footer_packet.footer))
+        TAB_HEADER = json.loads(header_footer_packet.header)["text"]
+        TAB_FOOTER = json.loads(header_footer_packet.footer)["text"]
+
     def handle_tab_list(tab_list_packet):
+        global ACCEPT_JOIN_EVENTS
         logging.debug("Processing tab list packet")
         for action in tab_list_packet.actions:
             if isinstance(action, clientbound.play.PlayerListItemPacket.AddPlayerAction):
@@ -244,10 +274,13 @@ def main():
                 player_uuid = action.uuid
                 if action.name not in PLAYER_LIST.inv:
                     PLAYER_LIST.inv[action.name] = action.uuid
+                else:
+                    # Sometimes we get a duplicate add packet on join idk why
+                    return
                 if action.name not in UUID_CACHE.inv:
                     UUID_CACHE.inv[action.name] = action.uuid
                 # Initial tablist backfill
-                if LAST_CONNECTION_TIME + timedelta(seconds=2.5) < datetime.now(timezone.utc):
+                if ACCEPT_JOIN_EVENTS:
                     webhook_payload = {
                         'username': username,
                         'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
@@ -259,6 +292,19 @@ def main():
                     if config.es_enabled:
                         es_connection(uuid=action.uuid, reason=ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
                     return
+                else:
+                    # The bot's name is sent last after the initial back-fill
+                    if action.name == BOT_USERNAME:
+                        ACCEPT_JOIN_EVENTS = True
+                        if config.es_enabled:
+                            diff = set(PREVIOUS_PLAYER_LIST.keys()) - set(PLAYER_LIST.keys())
+                            for idx, uuid in enumerate(diff):
+                                es_connection(uuid=uuid, reason=ConnectionReason.DISCONNECTED,
+                                              count=len(PREVIOUS_PLAYER_LIST) - (idx + 1))
+                    # Don't bother announcing the bot's own join message (who cares) but log it for analytics still
+                    if config.es_enabled:
+                        es_connection(uuid=action.uuid, reason=ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
+
                 if config.es_enabled:
                     es_connection(uuid=action.uuid, reason=ConnectionReason.SEEN)
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
@@ -273,14 +319,13 @@ def main():
                 }
                 for webhook in WEBHOOKS:
                     post = requests.post(webhook,json=webhook_payload)
-                if config.es_enabled:
-                    es_connection(uuid=action.uuid, reason=ConnectionReason.DISCONNECTED, count=len(PLAYER_LIST))
                 del UUID_CACHE[action.uuid]
                 del PLAYER_LIST[action.uuid]
+                if config.es_enabled:
+                    es_connection(uuid=action.uuid, reason=ConnectionReason.DISCONNECTED, count=len(PLAYER_LIST))
 
     def handle_join_game(join_game_packet):
-        global PLAYER_LIST, LAST_CONNECTION_TIME
-        LAST_CONNECTION_TIME = datetime.now(timezone.utc)
+        global PLAYER_LIST
         logging.info('Connected.')
         PLAYER_LIST = bidict()
 
@@ -313,7 +358,7 @@ def main():
                 return
             logging.info("Username: {} Message: {}".format(username, original_message))
             logging.debug("msg: {}".format(repr(original_message)))
-            message = remove_emoji(original_message.strip().replace("@", "@\N{zero width space}"))
+            message = escape_markdown(remove_emoji(original_message.strip().replace("@", "@\N{zero width space}")))
             webhook_payload = {
                 'username': username,
                 'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
@@ -514,8 +559,12 @@ def main():
                         await message.author.create_dm()
                     send_channel = message.author.dm_channel
                 player_list = ", ".join(list(map(lambda x: x[1], PLAYER_LIST.items())))
-                msg = "MOTD: {}\n" \
-                      "Players online: {}".format(MOTD, player_list)
+                msg = "{}\n" \
+                    "Players online: {}\n" \
+                    "{}".format(escape_markdown(
+                        strip_colour(TAB_HEADER)), escape_markdown(
+                        strip_colour(player_list)), escape_markdown(
+                        strip_colour(TAB_FOOTER)))
                 await send_channel.send(msg)
             except discord.errors.Forbidden:
                 if isinstance(message.author, discord.abc.User):
@@ -567,7 +616,7 @@ def main():
 
                         message_to_send = remove_emoji(
                             message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
-                        message_to_discord = message.clean_content
+                        message_to_discord = escape_markdown(message.clean_content)
 
                         logging.info(str(len(message_to_send)) + " " + repr(message_to_send))
 
