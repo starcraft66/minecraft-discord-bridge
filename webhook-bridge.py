@@ -40,7 +40,7 @@ NEXT_MESSAGE_TIME = datetime.now(timezone.utc)
 PREVIOUS_MESSAGE = ""
 PLAYER_LIST = bidict()
 PREVIOUS_PLAYER_LIST = bidict()
-ACCEPT_JOIN_EVENTS = True
+ACCEPT_JOIN_EVENTS = False
 TAB_HEADER = ""
 TAB_FOOTER = ""
 
