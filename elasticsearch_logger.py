@@ -33,7 +33,7 @@ def log_connection(uuid, reason, count=0):
             "time": (lambda: int(round(time.time() * 1000)))(),
             "reason": ConnectionReason(reason).name,
         }
-        post_request("connections/_doc/", es_payload)
+    post_request("connections/_doc/", es_payload)
 
 
 def log_chat_message(uuid, display_name, message, message_unformatted):
