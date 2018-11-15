@@ -300,10 +300,10 @@ def main():
                             for idx, uuid in enumerate(diff):
                                 el.log_connection(uuid=uuid, reason=el.ConnectionReason.DISCONNECTED,
                                               count=len(PREVIOUS_PLAYER_LIST) - (idx + 1))
-                    # Don't bother announcing the bot's own join message (who cares) but log it for analytics still
-                    if config.es_enabled:
-                        el.log_connection(
-                            uuid=action.uuid, reason=el.ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
+                        # Don't bother announcing the bot's own join message (who cares) but log it for analytics still
+                        if config.es_enabled:
+                            el.log_connection(
+                                uuid=action.uuid, reason=el.ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
 
                 if config.es_enabled:
                     el.log_connection(uuid=action.uuid, reason=el.ConnectionReason.SEEN)
