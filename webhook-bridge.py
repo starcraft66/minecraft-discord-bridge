@@ -397,6 +397,7 @@ def main():
             for webhook in channel_webhooks:
                 if webhook.name == "_minecraft":
                     global WEBHOOKS
+                    WEBHOOKS = []
                     WEBHOOKS.append(webhook.url)
                     found = True
                 logging.debug("Found webhook {} in channel {}".format(webhook.name, discord_channel.name))
