@@ -386,6 +386,8 @@ def main():
     @discord_bot.event
     async def on_ready():
         logging.info("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
+        global WEBHOOKS
+        WEBHOOKS = []
         session = database_session.get_session()
         channels = session.query(DiscordChannel).all()
         session.close()
@@ -396,8 +398,6 @@ def main():
             found = False
             for webhook in channel_webhooks:
                 if webhook.name == "_minecraft":
-                    global WEBHOOKS
-                    WEBHOOKS = []
                     WEBHOOKS.append(webhook.url)
                     found = True
                 logging.debug("Found webhook {} in channel {}".format(webhook.name, discord_channel.name))
