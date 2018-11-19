@@ -636,14 +636,23 @@ def main():
                         if message_to_send == PREVIOUS_MESSAGE or \
                                 datetime.now(timezone.utc) < NEXT_MESSAGE_TIME:
                             send_channel = message.channel
-                            if isinstance(message.channel, discord.abc.GuildChannel):
-                                dm_channel = message.author.dm_channel
-                                if not dm_channel:
-                                    await message.author.create_dm()
-                                send_channel = message.author.dm_channel
-                            msg = "Your message \"{}\" has been rate-limited.".format(message.clean_content)
-                            await send_channel.send(msg)
-                            return
+                            try:
+                                if isinstance(message.channel, discord.abc.GuildChannel):
+                                    dm_channel = message.author.dm_channel
+                                    if not dm_channel:
+                                        await message.author.create_dm()
+                                    send_channel = message.author.dm_channel
+                                msg = "Your message \"{}\" has been rate-limited.".format(message.clean_content)
+                                await send_channel.send(msg)
+                            except discord.errors.Forbidden:
+                                if isinstance(message.author, discord.abc.User):
+                                    msg = "{}, please allow private messages from this bot.".format(
+                                        message.author.mention)
+                                    error_msg = await message.channel.send(msg)
+                                    await asyncio.sleep(3)
+                                    await error_msg.delete()
+                            finally:
+                                return
 
                         PREVIOUS_MESSAGE = message_to_send
                         NEXT_MESSAGE_TIME = datetime.now(timezone.utc) + timedelta(seconds=config.message_delay)
@@ -662,16 +671,25 @@ def main():
                         connection.write_packet(packet)
                 else:
                     send_channel = message.channel
-                    if isinstance(message.channel, discord.abc.GuildChannel):
-                        dm_channel = message.author.dm_channel
-                        if not dm_channel:
-                            await message.author.create_dm()
-                        send_channel = message.author.dm_channel
-                    msg = "Unable to send chat message: there is no Minecraft account linked to this discord account," \
-                          "please run `mc!register`."
-                    await send_channel.send(msg)
-                    session.close()
-                    del session
+                    try:
+                        if isinstance(message.channel, discord.abc.GuildChannel):
+                            dm_channel = message.author.dm_channel
+                            if not dm_channel:
+                                await message.author.create_dm()
+                            send_channel = message.author.dm_channel
+                        msg = "Unable to send chat message: there is no Minecraft account linked to this discord account," \
+                              "please run `mc!register`."
+                        await send_channel.send(msg)
+                    except discord.errors.Forbidden:
+                        if isinstance(message.author, discord.abc.User):
+                            msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                            error_msg = await message.channel.send(msg)
+                            await asyncio.sleep(3)
+                            await error_msg.delete()
+                    finally:
+                        session.close()
+                        del session
+                        return
             else:
                 session.close()
                 del session
