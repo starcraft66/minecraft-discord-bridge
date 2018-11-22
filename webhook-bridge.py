@@ -358,7 +358,7 @@ def main():
                             message_unformatted=chat_string)
                         el.log_raw_message(type=ChatType(chat_packet.position).name, message=chat_packet.json_data)
                 return
-            log.info("Username: {} Message: {}".format(username, original_message))
+            log.info("Incoming message from minecraft: Username: {} Message: {}".format(username, original_message))
             log.debug("msg: {}".format(repr(original_message)))
             message = escape_markdown(remove_emoji(original_message.strip().replace("@", "@\N{zero width space}")))
             webhook_payload = {
@@ -621,8 +621,6 @@ def main():
                             message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
                         message_to_discord = escape_markdown(message.clean_content)
 
-                        log.info(str(len(message_to_send)) + " " + repr(message_to_send))
-
                         total_len = padding + len(message_to_send)
                         if total_len > 256:
                             message_to_send = message_to_send[:(256 - padding)]
@@ -658,6 +656,8 @@ def main():
 
                         PREVIOUS_MESSAGE = message_to_send
                         NEXT_MESSAGE_TIME = datetime.now(timezone.utc) + timedelta(seconds=config.message_delay)
+
+                        log.info("Outgoing message from discord: Username: {} Message: {}".format(minecraft_username, message_to_send))
 
                         for channel in channels:
                             webhooks = await discord_bot.get_channel(channel.channel_id).webhooks()
