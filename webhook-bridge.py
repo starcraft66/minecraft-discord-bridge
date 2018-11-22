@@ -31,6 +31,8 @@ from mcstatus import MinecraftServer
 
 from bidict import bidict
 
+log = logging.getLogger("bridge")
+
 UUID_CACHE = bidict()
 WEBHOOKS = []
 BOT_USERNAME = ""
@@ -57,7 +59,7 @@ def mc_uuid_to_username(uuid):
             UUID_CACHE[uuid] = player_username
             return player_username
         except:
-            logging.error("Failed to lookup {}'s username using the Mojang API.".format(uuid))
+            log.error("Failed to lookup {}'s username using the Mojang API.".format(uuid))
     else:
         return UUID_CACHE[uuid]
 
@@ -70,7 +72,7 @@ def mc_username_to_uuid(username):
             UUID_CACHE.inv[username] = player_uuid
             return player_uuid
         except:
-            logging.error("Failed to lookup {}'s UUID using the Mojang API.".format(username))
+            log.error("Failed to lookup {}'s UUID using the Mojang API.".format(username))
     else:
         return UUID_CACHE.inv[username]
 
@@ -121,7 +123,7 @@ def setup_logging(level):
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
-    log_format = "%(asctime)s:%(levelname)s:%(message)s"
+    log_format = "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
     logging.basicConfig(filename="bridge_log.log", format=log_format, level=log_level)
     stdout_logger=logging.StreamHandler(sys.stdout)
     stdout_logger.setFormatter(logging.Formatter(log_format))
@@ -138,7 +140,7 @@ def run_auth_server(port):
     factory = AuthFactory()
 
     # Listen
-    logging.info("Starting authentication server on port {}".format(port))
+    log.info("Starting authentication server on port {}".format(port))
 
     factory.listen("", port)
     try:
@@ -172,7 +174,7 @@ def main():
     reactor_thread.start()
 
     def handle_disconnect():
-        logging.info('Disconnected.')
+        log.info('Disconnected.')
         global PLAYER_LIST, PREVIOUS_PLAYER_LIST, ACCEPT_JOIN_EVENTS
         PREVIOUS_PLAYER_LIST = PLAYER_LIST.copy()
         ACCEPT_JOIN_EVENTS = False
@@ -180,16 +182,16 @@ def main():
         connection.disconnect(immediate=True)
         time.sleep(15)
         while not is_server_online():
-            logging.info('Not reconnecting to server because it appears to be offline.')
+            log.info('Not reconnecting to server because it appears to be offline.')
             time.sleep(15)
-        logging.info('Reconnecting.')
+        log.info('Reconnecting.')
         connection.connect()
 
     def handle_disconnect_packet(join_game_packet):
         handle_disconnect()
 
     def minecraft_handle_exception(exception, exc_info):
-        logging.info("{}: {}".format(exception, exc_info))
+        log.info("{}: {}".format(exception, exc_info))
         handle_disconnect()
 
     def is_server_online():
@@ -205,12 +207,12 @@ def main():
         except AttributeError:
             return False
 
-    logging.debug("Checking if the server {} is online before connecting.")
+    log.debug("Checking if the server {} is online before connecting.")
 
     if not config.mc_online:
-        logging.info("Connecting in offline mode...")
+        log.info("Connecting in offline mode...")
         while not is_server_online():
-            logging.info('Not connecting to server because it appears to be offline.')
+            log.info('Not connecting to server because it appears to be offline.')
             time.sleep(15)
         BOT_USERNAME = config.mc_username
         connection = Connection(
@@ -221,12 +223,12 @@ def main():
         try:
             auth_token.authenticate(config.mc_username, config.mc_password)
         except YggdrasilError as e:
-            logging.info(e)
+            log.info(e)
             sys.exit()
         BOT_USERNAME = auth_token.profile.name
-        logging.info("Logged in as %s..." % auth_token.profile.name)
+        log.info("Logged in as %s..." % auth_token.profile.name)
         while not is_server_online():
-            logging.info('Not connecting to server because it appears to be offline.')
+            log.info('Not connecting to server because it appears to be offline.')
             time.sleep(15)
         connection = Connection(
             config.mc_server, config.mc_port, auth_token=auth_token,
@@ -256,17 +258,17 @@ def main():
 
     def handle_player_list_header_and_footer_update(header_footer_packet):
         global TAB_FOOTER, TAB_HEADER
-        logging.debug("Got Tablist H/F Update: header={}".format(header_footer_packet.header))
-        logging.debug("Got Tablist H/F Update: footer={}".format(header_footer_packet.footer))
+        log.debug("Got Tablist H/F Update: header={}".format(header_footer_packet.header))
+        log.debug("Got Tablist H/F Update: footer={}".format(header_footer_packet.footer))
         TAB_HEADER = json.loads(header_footer_packet.header)["text"]
         TAB_FOOTER = json.loads(header_footer_packet.footer)["text"]
 
     def handle_tab_list(tab_list_packet):
         global ACCEPT_JOIN_EVENTS
-        logging.debug("Processing tab list packet")
+        log.debug("Processing tab list packet")
         for action in tab_list_packet.actions:
             if isinstance(action, clientbound.play.PlayerListItemPacket.AddPlayerAction):
-                logging.debug(
+                log.debug(
                     "Processing AddPlayerAction tab list packet, name: {}, uuid: {}".format(action.name, action.uuid))
                 username = action.name
                 player_uuid = action.uuid
@@ -308,7 +310,7 @@ def main():
                 if config.es_enabled:
                     el.log_connection(uuid=action.uuid, reason=el.ConnectionReason.SEEN)
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
-                logging.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
+                log.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
                 username = UUID_CACHE[action.uuid]
                 player_uuid = action.uuid
                 webhook_payload = {
@@ -326,7 +328,7 @@ def main():
 
     def handle_join_game(join_game_packet):
         global PLAYER_LIST
-        logging.info('Connected.')
+        log.info('Connected.')
         PLAYER_LIST = bidict()
 
     def handle_chat(chat_packet):
@@ -356,8 +358,8 @@ def main():
                             message_unformatted=chat_string)
                         el.log_raw_message(type=ChatType(chat_packet.position).name, message=chat_packet.json_data)
                 return
-            logging.info("Username: {} Message: {}".format(username, original_message))
-            logging.debug("msg: {}".format(repr(original_message)))
+            log.info("Username: {} Message: {}".format(username, original_message))
+            log.debug("msg: {}".format(repr(original_message)))
             message = escape_markdown(remove_emoji(original_message.strip().replace("@", "@\N{zero width space}")))
             webhook_payload = {
                 'username': username,
@@ -374,7 +376,7 @@ def main():
 
     def handle_health_update(health_update_packet):
         if health_update_packet.health <= 0:
-            logging.debug("Respawned the player because it died")
+            log.debug("Respawned the player because it died")
             packet = serverbound.play.ClientStatusPacket()
             packet.action_id = serverbound.play.ClientStatusPacket.RESPAWN
             connection.write_packet(packet)
@@ -385,7 +387,7 @@ def main():
 
     @discord_bot.event
     async def on_ready():
-        logging.info("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
+        log.info("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
         global WEBHOOKS
         WEBHOOKS = []
         session = database_session.get_session()
@@ -400,7 +402,7 @@ def main():
                 if webhook.name == "_minecraft":
                     WEBHOOKS.append(webhook.url)
                     found = True
-                logging.debug("Found webhook {} in channel {}".format(webhook.name, discord_channel.name))
+                log.debug("Found webhook {} in channel {}".format(webhook.name, discord_channel.name))
             if not found:
                 # Create the hook
                 await discord_channel.create_webhook(name="_minecraft")
@@ -619,7 +621,7 @@ def main():
                             message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
                         message_to_discord = escape_markdown(message.clean_content)
 
-                        logging.info(str(len(message_to_send)) + " " + repr(message_to_send))
+                        log.info(str(len(message_to_send)) + " " + repr(message_to_send))
 
                         total_len = padding + len(message_to_send)
                         if total_len > 256:

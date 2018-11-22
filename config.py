@@ -1,5 +1,7 @@
 import json
+import logging
 
+log = logging.getLogger("bridge.config")
 
 class Configuration(object):
     def __init__(self, path):
@@ -26,8 +28,8 @@ class Configuration(object):
                 self.es_username = self._config["ELASTICSEARCH"]["USERNAME"]
                 self.es_password = self._config["ELASTICSEARCH"]["PASSWORD"]
             else:
-                print("error reading config")
+                logging.error("error reading config")
                 exit(1)
         except IOError:
-            print("error reading config")
+            logging.error("error reading config")
             exit(1)

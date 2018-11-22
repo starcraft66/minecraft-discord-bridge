@@ -50,7 +50,7 @@ class AuthProtocol(ServerProtocol):
                 if discord_account.minecraft_account_id != None:
                     existing_account = session.query(MinecraftAccount).filter_by(
                         id=discord_account.minecraft_account_id).first()
-                    self.logger.info("[AUTH SERVER] unlinking existing {} account and replacing it with {}".format(
+                    self.logger.info("unlinking existing {} account and replacing it with {}".format(
                         existing_account.minecraft_uuid, str(uuid)))
                     session.delete(existing_account)
                 mc_account = MinecraftAccount(str(uuid), discord_account.id)
