@@ -9,6 +9,8 @@ _password = None
 _auth = None
 _url = None
 
+log = logging.getLogger("bridge.elasticsearch")
+
 
 def initialize(config):
     global _username, _password, _url, _auth
@@ -62,7 +64,7 @@ def post_request(endpoint, payload):
         post = requests.post(the_url, auth=(_username, _password), json=payload)
     else:
         post = requests.post(the_url, json=payload)
-    logging.debug("[Elasticsearch POST] {}".format(post.text))
+    log.debug(post.text)
 
 
 class ConnectionReason(Enum):
