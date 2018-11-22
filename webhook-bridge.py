@@ -191,7 +191,7 @@ def main():
         handle_disconnect()
 
     def minecraft_handle_exception(exception, exc_info):
-        log.info("{}: {}".format(exception, exc_info))
+        log.error("A minecraft exception occured! {}:".format(exception), exc_info=exc_info)
         handle_disconnect()
 
     def is_server_online():
