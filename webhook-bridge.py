@@ -12,6 +12,7 @@ import time
 import logging
 import random
 import string
+import uuid
 from threading import Thread
 from config import Configuration
 from database import DiscordChannel, AccountLinkToken, DiscordAccount
@@ -58,7 +59,8 @@ def mc_uuid_to_username(uuid):
                 player_username = mojang_response[0]["name"]
             UUID_CACHE[uuid] = player_username
             return player_username
-        except:
+        except Exception as e:
+            log.error(e, exc_info=True)
             log.error("Failed to lookup {}'s username using the Mojang API.".format(uuid))
     else:
         return UUID_CACHE[uuid]
@@ -69,7 +71,8 @@ def mc_username_to_uuid(username):
         try:
             player_uuid = requests.get(
                 "https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
-            UUID_CACHE.inv[username] = player_uuid
+            long_uuid = uuid.UUID(player_uuid)
+            UUID_CACHE.inv[username] = str(long_uuid)
             return player_uuid
         except:
             log.error("Failed to lookup {}'s UUID using the Mojang API.".format(username))
@@ -311,7 +314,7 @@ def main():
                     el.log_connection(uuid=action.uuid, reason=el.ConnectionReason.SEEN)
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
                 log.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
-                username = UUID_CACHE[action.uuid]
+                username = mc_uuid_to_username(action.uuid)
                 player_uuid = action.uuid
                 webhook_payload = {
                     'username': username,
@@ -352,7 +355,7 @@ def main():
                         BOT_USERNAME.lower()), chat_string, re.M | re.I)
                     if bot_message_match:
                         el.log_chat_message(
-                            uuid=UUID_CACHE.inv[bot_message_match.group(1)],
+                            uuid=mc_username_to_uuid(bot_message_match.group(1)),
                             display_name=bot_message_match.group(1),
                             message=bot_message_match.group(2),
                             message_unformatted=chat_string)
