@@ -34,6 +34,7 @@ from bidict import bidict
 
 log = logging.getLogger("bridge")
 
+SESSION_TOKEN = ""
 UUID_CACHE = bidict()
 WEBHOOKS = []
 BOT_USERNAME = ""
@@ -182,7 +183,9 @@ def main():
         PREVIOUS_PLAYER_LIST = PLAYER_LIST.copy()
         ACCEPT_JOIN_EVENTS = False
         PLAYER_LIST = bidict()
-        connection.disconnect(immediate=True)
+        if connection.connected:
+            log.info("Forced a disconnection because the connection is still connected.")
+            connection.disconnect(immediate=True)
         time.sleep(15)
         while not is_server_online():
             log.info('Not reconnecting to server because it appears to be offline.')
