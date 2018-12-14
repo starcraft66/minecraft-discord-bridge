@@ -627,12 +627,20 @@ def main():
                             message.clean_content.encode('utf-8').decode('ascii', 'replace')).strip()
                         message_to_discord = escape_markdown(message.clean_content)
 
+                        if len(message.attachments) > 0:
+                            for attach in message.attachments:
+                                message_to_send = "{} {}".format(message_to_send, attach.url)
+                                message_to_discord = "{} {}".format(message_to_discord, attach.url)
+
                         total_len = padding + len(message_to_send)
                         if total_len > 256:
                             message_to_send = message_to_send[:(256 - padding)]
                             message_to_discord = message_to_discord[:(256 - padding)]
                         elif len(message_to_send) <= 0:
-                            return
+                            if len(message.attachments) > 0:
+                                pass
+                            else:
+                                return
 
                         session = database_session.get_session()
                         channels = session.query(DiscordChannel).all()
