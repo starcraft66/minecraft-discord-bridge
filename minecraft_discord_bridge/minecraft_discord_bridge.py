@@ -680,11 +680,13 @@ class MinecraftDiscordBridge():
         if isinstance(exception, YggdrasilError):
             if (exception.yggdrasil_error == "ForbiddenOperationException" and
                     exception.yggdrasil_error == "Invalid token"):
+                self.logger.info("Authentication token expired. Re-authenticating with Mojang.")
                 new_auth_token = authentication.AuthenticationToken()
                 try:
                     new_auth_token.authenticate(*self.credentials)
                     self.connection.auth_token = new_auth_token
                 except YggdrasilError as ye:
+                    self.logger.error("Error while re-authenticating with Mojang.")
                     self.logger.error(ye)
                 self.logger.info('Reconnecting.')
                 self.connection.connect()
