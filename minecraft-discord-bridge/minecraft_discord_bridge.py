@@ -66,7 +66,7 @@ def mc_uuid_to_username(uuid):
     else:
         return UUID_CACHE[uuid]
 
-    
+
 def mc_username_to_uuid(username):
     if username not in UUID_CACHE.inv:
         try:
@@ -75,12 +75,12 @@ def mc_username_to_uuid(username):
             long_uuid = uuid.UUID(player_uuid)
             UUID_CACHE.inv[username] = str(long_uuid)
             return player_uuid
-        except:
+        except requests.RequestException:
             log.error("Failed to lookup {}'s UUID using the Mojang API.".format(username))
     else:
         return UUID_CACHE.inv[username]
 
-        
+
 def get_discord_help_string():
     help_str = ("Admin commands:\n"
                 "`mc!chathere`: Starts outputting server messages in this channel\n"
@@ -129,7 +129,7 @@ def setup_logging(level):
         log_level = logging.INFO
     log_format = "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
     logging.basicConfig(filename="bridge_log.log", format=log_format, level=log_level)
-    stdout_logger=logging.StreamHandler(sys.stdout)
+    stdout_logger = logging.StreamHandler(sys.stdout)
     stdout_logger.setFormatter(logging.Formatter(log_format))
     logging.getLogger().addHandler(stdout_logger)
 
@@ -294,7 +294,7 @@ def main():
                         'embeds': [{'color': 65280, 'title': '**Joined the game**'}]
                     }
                     for webhook in WEBHOOKS:
-                        post = requests.post(webhook,json=webhook_payload)
+                        requests.post(webhook, json=webhook_payload)
                     if config.es_enabled:
                         el.log_connection(
                             uuid=action.uuid, reason=el.ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
@@ -305,9 +305,9 @@ def main():
                         ACCEPT_JOIN_EVENTS = True
                         if config.es_enabled:
                             diff = set(PREVIOUS_PLAYER_LIST.keys()) - set(PLAYER_LIST.keys())
-                            for idx, uuid in enumerate(diff):
-                                el.log_connection(uuid=uuid, reason=el.ConnectionReason.DISCONNECTED,
-                                              count=len(PREVIOUS_PLAYER_LIST) - (idx + 1))
+                            for idx, player_uuid in enumerate(diff):
+                                el.log_connection(uuid=player_uuid, reason=el.ConnectionReason.DISCONNECTED,
+                                                  count=len(PREVIOUS_PLAYER_LIST) - (idx + 1))
                         # Don't bother announcing the bot's own join message (who cares) but log it for analytics still
                         if config.es_enabled:
                             el.log_connection(
@@ -326,7 +326,7 @@ def main():
                     'embeds': [{'color': 16711680, 'title': '**Left the game**'}]
                 }
                 for webhook in WEBHOOKS:
-                    post = requests.post(webhook,json=webhook_payload)
+                    requests.post(webhook, json=webhook_payload)
                 del UUID_CACHE[action.uuid]
                 del PLAYER_LIST[action.uuid]
                 if config.es_enabled:
@@ -343,10 +343,10 @@ def main():
             return
         chat_string = ""
         for chat_component in json_data["extra"]:
-            chat_string += chat_component["text"] 
-        
+            chat_string += chat_component["text"]
+
         # Handle chat message
-        regexp_match = re.match("<(.*?)> (.*)", chat_string, re.M|re.I)
+        regexp_match = re.match("<(.*?)> (.*)", chat_string, re.M | re.I)
         if regexp_match:
             username = regexp_match.group(1)
             original_message = regexp_match.group(2)
@@ -373,7 +373,7 @@ def main():
                 'content': '{}'.format(message)
             }
             for webhook in WEBHOOKS:
-                post = requests.post(webhook, json=webhook_payload)
+                requests.post(webhook, json=webhook_payload)
             if config.es_enabled:
                 el.log_chat_message(
                     uuid=player_uuid, display_name=username, message=original_message, message_unformatted=chat_string)
@@ -608,7 +608,7 @@ def main():
                     await error_msg.delete()
             finally:
                 return
-            
+
         elif not message.author.bot:
             session = database_session.get_session()
             channel_should_chat = session.query(DiscordChannel).filter_by(channel_id=this_channel).first()
