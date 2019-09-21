@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [dev-packages]
+flake8 = "*"
 
 [packages]
 requests = "*"
@@ -12,7 +13,7 @@ future = "*"
 sqlalchemy = "*"
 mcstatus = "*"
 quarry = "*"
-discord-py = {git = "https://github.com/Rapptz/discord.py.git", ref = "rewrite"}
+discord.py = "*"
 bidict = "*"
 minecraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
 
