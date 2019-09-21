@@ -14,12 +14,12 @@ import random
 import string
 import uuid
 from threading import Thread
-from config import Configuration
-from database import DiscordChannel, AccountLinkToken, DiscordAccount
-import database_session
+from .config import Configuration
+from .database import DiscordChannel, AccountLinkToken, DiscordAccount
+from . import database_session
 
 from datetime import datetime, timedelta, timezone
-import elasticsearch_logger as el
+from . import elasticsearch_logger as el
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
 from minecraft.networking.connection import Connection
@@ -138,7 +138,7 @@ def run_auth_server(port):
     # We need to import twisted after setting up the logger because twisted hijacks our logging
     # TODO: Fix this in a cleaner way
     from twisted.internet import reactor
-    from auth_server import AuthFactory
+    from .auth_server import AuthFactory
 
     # Create factory
     factory = AuthFactory()

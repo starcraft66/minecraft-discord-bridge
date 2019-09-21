@@ -1,9 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from quarry.net.server import ServerFactory, ServerProtocol
 
-from database import AccountLinkToken, MinecraftAccount, DiscordAccount
-import database_session
+from .database import AccountLinkToken, MinecraftAccount, DiscordAccount
+from . import database_session
 
 
 class AuthProtocol(ServerProtocol):
