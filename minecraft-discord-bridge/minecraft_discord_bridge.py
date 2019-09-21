@@ -405,7 +405,7 @@ def main():
             channel_webhooks = await discord_channel.webhooks()
             found = False
             for webhook in channel_webhooks:
-                if webhook.name == "_minecraft":
+                if webhook.name == "_minecraft" and webhook.user == discord_bot.user:
                     WEBHOOKS.append(webhook.url)
                     found = True
                 log.debug("Found webhook {} in channel {}".format(webhook.name, discord_channel.name))
@@ -545,16 +545,20 @@ def main():
             deleted = session.query(DiscordChannel).filter_by(channel_id=this_channel).delete()
             session.commit()
             session.close()
-            for webhook in message.channel:
-                if webhook.name == "_minecraft":
-                    del WEBHOOKS[webhook.url]
+            for webhook in await message.channel.webhooks():
+                if webhook.name == "_minecraft" and webhook.user == discord_bot.user:
+                    # Copy the list to avoid some problems since
+                    # we're deleting indicies form it as we loop
+                    # through it
+                    if webhook.url in WEBHOOKS[:]:
+                        WEBHOOKS.remove(webhook.url)
                     await webhook.delete()
             if deleted < 1:
                 msg = "The bot was not chatting here!"
                 await message.channel.send(msg)
                 return
             else:
-                msg = "The bot will no longer here!"
+                msg = "The bot will no longer chat here!"
                 await message.channel.send(msg)
                 return
 
