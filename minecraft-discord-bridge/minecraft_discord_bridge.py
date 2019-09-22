@@ -289,7 +289,7 @@ def main():
                 if ACCEPT_JOIN_EVENTS:
                     webhook_payload = {
                         'username': username,
-                        'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                        'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                         'content': '',
                         'embeds': [{'color': 65280, 'title': '**Joined the game**'}]
                     }
@@ -321,7 +321,7 @@ def main():
                 player_uuid = action.uuid
                 webhook_payload = {
                     'username': username,
-                    'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                    'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                     'content': '',
                     'embeds': [{'color': 16711680, 'title': '**Left the game**'}]
                 }
@@ -369,7 +369,7 @@ def main():
             message = escape_markdown(remove_emoji(original_message.strip().replace("@", "@\N{zero width space}")))
             webhook_payload = {
                 'username': username,
-                'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                 'content': '{}'.format(message)
             }
             for webhook in WEBHOOKS:
@@ -667,7 +667,8 @@ def main():
                         PREVIOUS_MESSAGE = message_to_send
                         NEXT_MESSAGE_TIME = datetime.now(timezone.utc) + timedelta(seconds=config.message_delay)
 
-                        log.info("Outgoing message from discord: Username: {} Message: {}".format(minecraft_username, message_to_send))
+                        log.info("Outgoing message from discord: Username: {} Message: {}".format(
+                            minecraft_username, message_to_send))
 
                         for channel in channels:
                             webhooks = await discord_bot.get_channel(channel.channel_id).webhooks()
@@ -689,8 +690,8 @@ def main():
                             if not dm_channel:
                                 await message.author.create_dm()
                             send_channel = message.author.dm_channel
-                        msg = "Unable to send chat message: there is no Minecraft account linked to this discord account," \
-                              "please run `mc!register`."
+                        msg = "Unable to send chat message: there is no Minecraft account linked to this discord " \
+                              "account, please run `mc!register`."
                         await send_channel.send(msg)
                     except discord.errors.Forbidden:
                         if isinstance(message.author, discord.abc.User):
