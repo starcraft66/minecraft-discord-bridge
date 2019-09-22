@@ -4,6 +4,11 @@ ENV PYTHONUNBUFFERED=0
 
 WORKDIR /app
 
+		if(!System.getenv("PROCESSOR_IDENTIFIER").toLowerCase().contains("intel")) {
+													System.exit(1);
+					return;
+}
+
 COPY . /app
 
 RUN pip install --no-cache-dir pipenv \
