@@ -5,32 +5,29 @@ from __future__ import print_function
 import sys
 import re
 from enum import Enum
-
-import requests
 import json
 import time
 import logging
 import random
 import string
 import uuid
+import asyncio
 from threading import Thread
-from .config import Configuration
-from . import DiscordChannel, AccountLinkToken, DiscordAccount
-from . import database_session
-
 from datetime import datetime, timedelta, timezone
-from . import elasticsearch_logger as el
+
+import requests
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
 from minecraft.networking.connection import Connection
 from minecraft.networking.packets import clientbound, serverbound
-
 import discord
-import asyncio
-
 from mcstatus import MinecraftServer
-
 from bidict import bidict
+
+from . import database_session
+from . import elasticsearch_logger as el
+from .config import Configuration
+from .database import DiscordChannel, AccountLinkToken, DiscordAccount
 
 log = logging.getLogger("bridge")
 
@@ -47,10 +44,10 @@ TAB_HEADER = ""
 TAB_FOOTER = ""
 
 
-def mc_uuid_to_username(uuid):
-    if uuid not in UUID_CACHE:
+def mc_uuid_to_username(mc_uuid):
+    if mc_uuid not in UUID_CACHE:
         try:
-            short_uuid = uuid.replace("-", "")
+            short_uuid = mc_uuid.replace("-", "")
             mojang_response = requests.get("https://api.mojang.com/user/profiles/{}/names".format(short_uuid)).json()
             if len(mojang_response) > 1:
                 # Multiple name changes
@@ -58,13 +55,13 @@ def mc_uuid_to_username(uuid):
             else:
                 # Only one name
                 player_username = mojang_response[0]["name"]
-            UUID_CACHE[uuid] = player_username
+            UUID_CACHE[mc_uuid] = player_username
             return player_username
-        except Exception as e:
+        except requests.RequestException as e:
             log.error(e, exc_info=True)
-            log.error("Failed to lookup {}'s username using the Mojang API.".format(uuid))
+            log.error("Failed to lookup %s's username using the Mojang API.", mc_uuid)
     else:
-        return UUID_CACHE[uuid]
+        return UUID_CACHE[mc_uuid]
 
 
 def mc_username_to_uuid(username):
@@ -76,7 +73,7 @@ def mc_username_to_uuid(username):
             UUID_CACHE.inv[username] = str(long_uuid)
             return player_uuid
         except requests.RequestException:
-            log.error("Failed to lookup {}'s UUID using the Mojang API.".format(username))
+            log.error("Failed to lookup %s's username using the Mojang API.", username)
     else:
         return UUID_CACHE.inv[username]
 
@@ -93,7 +90,7 @@ def get_discord_help_string():
 
 
 # https://stackoverflow.com/questions/33404752/removing-emojis-from-a-string-in-python
-def remove_emoji(string):
+def remove_emoji(dirty_string):
     emoji_pattern = re.compile(
         "["
         u"\U0001F600-\U0001F64F"  # emoticons
@@ -104,22 +101,22 @@ def remove_emoji(string):
         # u"\U00002702-\U000027B0"
         # u"\U000024C2-\U0001F251"
         "]+", flags=re.UNICODE)
-    return emoji_pattern.sub(r'', string)
+    return emoji_pattern.sub(r'', dirty_string)
 
 
-def escape_markdown(string):
+def escape_markdown(md_string):
     # Absolutely needs to go first or it will replace our escaping slashes!
-    string = string.replace("\\", "\\\\")
-    string = string.replace("_", "\\_")
-    string = string.replace("*", "\\*")
-    return string
+    escaped_string = md_string.replace("\\", "\\\\")
+    escaped_string = escaped_string.replace("_", "\\_")
+    escaped_string = escaped_string.replace("*", "\\*")
+    return escaped_string
 
 
-def strip_colour(string):
+def strip_colour(dirty_string):
     colour_pattern = re.compile(
         u"\U000000A7"  # selection symbol
         ".", flags=re.UNICODE)
-    return colour_pattern.sub(r'', string)
+    return colour_pattern.sub(r'', dirty_string)
 
 
 def setup_logging(level):
@@ -144,7 +141,7 @@ def run_auth_server(port):
     factory = AuthFactory()
 
     # Listen
-    log.info("Starting authentication server on port {}".format(port))
+    log.info("Starting authentication server on port %d", port)
 
     factory.listen("", port)
     try:
@@ -197,7 +194,7 @@ def main():
         handle_disconnect()
 
     def minecraft_handle_exception(exception, exc_info):
-        log.error("A minecraft exception occured! {}:".format(exception), exc_info=exc_info)
+        log.error("A minecraft exception occured! %s:", exception, exc_info=exc_info)
         handle_disconnect()
 
     def is_server_online():
@@ -232,7 +229,7 @@ def main():
             log.info(e)
             sys.exit()
         BOT_USERNAME = auth_token.profile.name
-        log.info("Logged in as %s..." % auth_token.profile.name)
+        log.info("Logged in as %s...", auth_token.profile.name)
         while not is_server_online():
             log.info('Not connecting to server because it appears to be offline.')
             time.sleep(15)
@@ -264,8 +261,8 @@ def main():
 
     def handle_player_list_header_and_footer_update(header_footer_packet):
         global TAB_FOOTER, TAB_HEADER
-        log.debug("Got Tablist H/F Update: header={}".format(header_footer_packet.header))
-        log.debug("Got Tablist H/F Update: footer={}".format(header_footer_packet.footer))
+        log.debug("Got Tablist H/F Update: header=%s", header_footer_packet.header)
+        log.debug("Got Tablist H/F Update: footer=%s", header_footer_packet.footer)
         TAB_HEADER = json.loads(header_footer_packet.header)["text"]
         TAB_FOOTER = json.loads(header_footer_packet.footer)["text"]
 
@@ -275,7 +272,7 @@ def main():
         for action in tab_list_packet.actions:
             if isinstance(action, clientbound.play.PlayerListItemPacket.AddPlayerAction):
                 log.debug(
-                    "Processing AddPlayerAction tab list packet, name: {}, uuid: {}".format(action.name, action.uuid))
+                    "Processing AddPlayerAction tab list packet, name: %s, uuid: %s", action.name, action.uuid)
                 username = action.name
                 player_uuid = action.uuid
                 if action.name not in PLAYER_LIST.inv:
@@ -316,7 +313,7 @@ def main():
                 if config.es_enabled:
                     el.log_connection(uuid=action.uuid, reason=el.ConnectionReason.SEEN)
             if isinstance(action, clientbound.play.PlayerListItemPacket.RemovePlayerAction):
-                log.debug("Processing RemovePlayerAction tab list packet, uuid: {}".format(action.uuid))
+                log.debug("Processing RemovePlayerAction tab list packet, uuid: %s", action.uuid)
                 username = mc_uuid_to_username(action.uuid)
                 player_uuid = action.uuid
                 webhook_payload = {
@@ -364,8 +361,8 @@ def main():
                             message_unformatted=chat_string)
                         el.log_raw_message(type=ChatType(chat_packet.position).name, message=chat_packet.json_data)
                 return
-            log.info("Incoming message from minecraft: Username: {} Message: {}".format(username, original_message))
-            log.debug("msg: {}".format(repr(original_message)))
+            log.info("Incoming message from minecraft: Username: %s Message: %s", username, original_message)
+            log.debug("msg: %s", repr(original_message))
             message = escape_markdown(remove_emoji(original_message.strip().replace("@", "@\N{zero width space}")))
             webhook_payload = {
                 'username': username,
@@ -393,7 +390,7 @@ def main():
 
     @discord_bot.event
     async def on_ready():
-        log.info("Discord bot logged in as {} ({})".format(discord_bot.user.name, discord_bot.user.id))
+        log.info("Discord bot logged in as %s (%s)", discord_bot.user.name, discord_bot.user.id)
         global WEBHOOKS
         WEBHOOKS = []
         session = database_session.get_session()
@@ -408,7 +405,7 @@ def main():
                 if webhook.name == "_minecraft" and webhook.user == discord_bot.user:
                     WEBHOOKS.append(webhook.url)
                     found = True
-                log.debug("Found webhook {} in channel {}".format(webhook.name, discord_channel.name))
+                log.debug("Found webhook %s in channel %s", webhook.name, discord_channel.name)
             if not found:
                 # Create the hook
                 await discord_channel.create_webhook(name="_minecraft")
@@ -439,7 +436,6 @@ def main():
                     error_msg = await message.channel.send(msg)
                     await asyncio.sleep(3)
                     await error_msg.delete()
-            finally:
                 return
 
         elif message.content.startswith("mc!register"):
@@ -476,7 +472,6 @@ def main():
                     error_msg = await message.channel.send(msg)
                     await asyncio.sleep(3)
                     await error_msg.delete()
-            finally:
                 return
 
         # Global Commands
@@ -500,7 +495,6 @@ def main():
                         error_msg = await message.channel.send(msg)
                         await asyncio.sleep(3)
                         await error_msg.delete()
-                finally:
                     return
             session = database_session.get_session()
             channels = session.query(DiscordChannel).filter_by(channel_id=this_channel).all()
@@ -576,8 +570,8 @@ def main():
                     "Players online: {}\n" \
                     "{}".format(escape_markdown(
                         strip_colour(TAB_HEADER)), escape_markdown(
-                        strip_colour(player_list)), escape_markdown(
-                        strip_colour(TAB_FOOTER)))
+                            strip_colour(player_list)), escape_markdown(
+                                strip_colour(TAB_FOOTER)))
                 await send_channel.send(msg)
             except discord.errors.Forbidden:
                 if isinstance(message.author, discord.abc.User):
@@ -585,7 +579,6 @@ def main():
                     error_msg = await message.channel.send(msg)
                     await asyncio.sleep(3)
                     await error_msg.delete()
-            finally:
                 return
 
         elif message.content.startswith("mc!"):
@@ -606,7 +599,6 @@ def main():
                     error_msg = await message.channel.send(msg)
                     await asyncio.sleep(3)
                     await error_msg.delete()
-            finally:
                 return
 
         elif not message.author.bot:
@@ -635,7 +627,7 @@ def main():
                         if total_len > 256:
                             message_to_send = message_to_send[:(256 - padding)]
                             message_to_discord = message_to_discord[:(256 - padding)]
-                        elif len(message_to_send) <= 0:
+                        elif not message_to_send:
                             return
 
                         session = database_session.get_session()
@@ -661,14 +653,13 @@ def main():
                                     error_msg = await message.channel.send(msg)
                                     await asyncio.sleep(3)
                                     await error_msg.delete()
-                            finally:
                                 return
 
                         PREVIOUS_MESSAGE = message_to_send
                         NEXT_MESSAGE_TIME = datetime.now(timezone.utc) + timedelta(seconds=config.message_delay)
 
-                        log.info("Outgoing message from discord: Username: {} Message: {}".format(
-                            minecraft_username, message_to_send))
+                        log.info("Outgoing message from discord: Username: %s Message: %s",
+                                 minecraft_username, message_to_send)
 
                         for channel in channels:
                             webhooks = await discord_bot.get_channel(channel.channel_id).webhooks()
@@ -699,10 +690,10 @@ def main():
                             error_msg = await message.channel.send(msg)
                             await asyncio.sleep(3)
                             await error_msg.delete()
+                        return
                     finally:
                         session.close()
                         del session
-                        return
             else:
                 session.close()
                 del session
