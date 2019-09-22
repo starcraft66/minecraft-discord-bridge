@@ -15,7 +15,7 @@ import string
 import uuid
 from threading import Thread
 from .config import Configuration
-from .database import DiscordChannel, AccountLinkToken, DiscordAccount
+from . import DiscordChannel, AccountLinkToken, DiscordAccount
 from . import database_session
 
 from datetime import datetime, timedelta, timezone
