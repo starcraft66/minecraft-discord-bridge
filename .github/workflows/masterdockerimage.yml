@@ -1,0 +1,42 @@
+name: Docker Image
+
+on:
+  push:
+    branches:
+      # Build only the master branch
+      - 'master'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out the repo
+      uses: actions/checkout@v1
+    - name: Login to Docker Hub
+      uses: actions/docker/login@master
+      env:
+        DOCKER_USERNAME: starcraft66
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_HUB_TOKEN }}
+    - name: Run tox
+      uses: tox-dev/gh-action-tox@master
+      env:
+        DOCKER_USERNAME: starcraft66
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_HUB_TOKEN }}
+    - name: Login to the GitHub Package Registry
+      uses: actions/docker/login@master
+      env:
+        DOCKER_REGISTRY_URL: "docker.pkg.github.com"
+        DOCKER_USERNAME: starcraft66
+        DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN_OWNED }}
+    - name: Build the master docker image
+      uses: actions/docker/cli@master
+      with:
+        args: "build -t starcraft66/minecraft-discord-bridge:latest -t docker.pkg.github.com/starcraft66/docker-minecraft-discord-bridge/minecraft-discord-bridge:latest ."
+    - name: Push the master docker image to Docker Hub
+      uses: actions/docker/cli@master
+      with:
+        args: "push starcraft66/minecraft-discord-bridge:latest"
+    - name: Push the master docker image to GitHub Package Registry
+      uses: actions/docker/cli@master
+      with:
+        args: "push docker.pkg.github.com/starcraft66/docker-minecraft-discord-bridge/minecraft-discord-bridge:latest"
