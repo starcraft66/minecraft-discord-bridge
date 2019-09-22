@@ -1,9 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from quarry.net.server import ServerFactory, ServerProtocol
 
-from database import AccountLinkToken, MinecraftAccount, DiscordAccount
-import database_session
+from .database import AccountLinkToken, MinecraftAccount, DiscordAccount
+from . import database_session
 
 
 class AuthProtocol(ServerProtocol):
@@ -27,7 +27,7 @@ class AuthProtocol(ServerProtocol):
             ip_addr = self.connect_host[:-5]
         else:
             ip_addr = self.connect_host
-        
+
         connect_port = self.connect_port
 
         self.logger.info("[AUTH SERVER] {} ({}) connected to address {}:{}".format(
@@ -47,7 +47,7 @@ class AuthProtocol(ServerProtocol):
                 return
             if datetime.utcnow() < token.expiry:
                 # Check if they already have a linked account and are re-linking
-                if discord_account.minecraft_account_id != None:
+                if discord_account.minecraft_account_id is not None:
                     existing_account = session.query(MinecraftAccount).filter_by(
                         id=discord_account.minecraft_account_id).first()
                     self.logger.info("unlinking existing {} account and replacing it with {}".format(

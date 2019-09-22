@@ -3,6 +3,7 @@ import logging
 
 log = logging.getLogger("bridge.config")
 
+
 class Configuration(object):
     def __init__(self, path):
         try:

@@ -14,12 +14,12 @@ import random
 import string
 import uuid
 from threading import Thread
-from config import Configuration
-from database import DiscordChannel, AccountLinkToken, DiscordAccount
-import database_session
+from .config import Configuration
+from .database import DiscordChannel, AccountLinkToken, DiscordAccount
+from . import database_session
 
 from datetime import datetime, timedelta, timezone
-import elasticsearch_logger as el
+from . import elasticsearch_logger as el
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
 from minecraft.networking.connection import Connection
@@ -66,7 +66,7 @@ def mc_uuid_to_username(uuid):
     else:
         return UUID_CACHE[uuid]
 
-    
+
 def mc_username_to_uuid(username):
     if username not in UUID_CACHE.inv:
         try:
@@ -75,12 +75,12 @@ def mc_username_to_uuid(username):
             long_uuid = uuid.UUID(player_uuid)
             UUID_CACHE.inv[username] = str(long_uuid)
             return player_uuid
-        except:
+        except requests.RequestException:
             log.error("Failed to lookup {}'s UUID using the Mojang API.".format(username))
     else:
         return UUID_CACHE.inv[username]
 
-        
+
 def get_discord_help_string():
     help_str = ("Admin commands:\n"
                 "`mc!chathere`: Starts outputting server messages in this channel\n"
@@ -129,7 +129,7 @@ def setup_logging(level):
         log_level = logging.INFO
     log_format = "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
     logging.basicConfig(filename="bridge_log.log", format=log_format, level=log_level)
-    stdout_logger=logging.StreamHandler(sys.stdout)
+    stdout_logger = logging.StreamHandler(sys.stdout)
     stdout_logger.setFormatter(logging.Formatter(log_format))
     logging.getLogger().addHandler(stdout_logger)
 
@@ -138,7 +138,7 @@ def run_auth_server(port):
     # We need to import twisted after setting up the logger because twisted hijacks our logging
     # TODO: Fix this in a cleaner way
     from twisted.internet import reactor
-    from auth_server import AuthFactory
+    from .auth_server import AuthFactory
 
     # Create factory
     factory = AuthFactory()
@@ -289,12 +289,12 @@ def main():
                 if ACCEPT_JOIN_EVENTS:
                     webhook_payload = {
                         'username': username,
-                        'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                        'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                         'content': '',
                         'embeds': [{'color': 65280, 'title': '**Joined the game**'}]
                     }
                     for webhook in WEBHOOKS:
-                        post = requests.post(webhook,json=webhook_payload)
+                        requests.post(webhook, json=webhook_payload)
                     if config.es_enabled:
                         el.log_connection(
                             uuid=action.uuid, reason=el.ConnectionReason.CONNECTED, count=len(PLAYER_LIST))
@@ -305,9 +305,9 @@ def main():
                         ACCEPT_JOIN_EVENTS = True
                         if config.es_enabled:
                             diff = set(PREVIOUS_PLAYER_LIST.keys()) - set(PLAYER_LIST.keys())
-                            for idx, uuid in enumerate(diff):
-                                el.log_connection(uuid=uuid, reason=el.ConnectionReason.DISCONNECTED,
-                                              count=len(PREVIOUS_PLAYER_LIST) - (idx + 1))
+                            for idx, player_uuid in enumerate(diff):
+                                el.log_connection(uuid=player_uuid, reason=el.ConnectionReason.DISCONNECTED,
+                                                  count=len(PREVIOUS_PLAYER_LIST) - (idx + 1))
                         # Don't bother announcing the bot's own join message (who cares) but log it for analytics still
                         if config.es_enabled:
                             el.log_connection(
@@ -321,12 +321,12 @@ def main():
                 player_uuid = action.uuid
                 webhook_payload = {
                     'username': username,
-                    'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                    'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                     'content': '',
                     'embeds': [{'color': 16711680, 'title': '**Left the game**'}]
                 }
                 for webhook in WEBHOOKS:
-                    post = requests.post(webhook,json=webhook_payload)
+                    requests.post(webhook, json=webhook_payload)
                 del UUID_CACHE[action.uuid]
                 del PLAYER_LIST[action.uuid]
                 if config.es_enabled:
@@ -343,10 +343,10 @@ def main():
             return
         chat_string = ""
         for chat_component in json_data["extra"]:
-            chat_string += chat_component["text"] 
-        
+            chat_string += chat_component["text"]
+
         # Handle chat message
-        regexp_match = re.match("<(.*?)> (.*)", chat_string, re.M|re.I)
+        regexp_match = re.match("<(.*?)> (.*)", chat_string, re.M | re.I)
         if regexp_match:
             username = regexp_match.group(1)
             original_message = regexp_match.group(2)
@@ -369,11 +369,11 @@ def main():
             message = escape_markdown(remove_emoji(original_message.strip().replace("@", "@\N{zero width space}")))
             webhook_payload = {
                 'username': username,
-                'avatar_url':  "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
                 'content': '{}'.format(message)
             }
             for webhook in WEBHOOKS:
-                post = requests.post(webhook, json=webhook_payload)
+                requests.post(webhook, json=webhook_payload)
             if config.es_enabled:
                 el.log_chat_message(
                     uuid=player_uuid, display_name=username, message=original_message, message_unformatted=chat_string)
@@ -405,7 +405,7 @@ def main():
             channel_webhooks = await discord_channel.webhooks()
             found = False
             for webhook in channel_webhooks:
-                if webhook.name == "_minecraft":
+                if webhook.name == "_minecraft" and webhook.user == discord_bot.user:
                     WEBHOOKS.append(webhook.url)
                     found = True
                 log.debug("Found webhook {} in channel {}".format(webhook.name, discord_channel.name))
@@ -545,16 +545,20 @@ def main():
             deleted = session.query(DiscordChannel).filter_by(channel_id=this_channel).delete()
             session.commit()
             session.close()
-            for webhook in message.channel:
-                if webhook.name == "_minecraft":
-                    del WEBHOOKS[webhook.url]
+            for webhook in await message.channel.webhooks():
+                if webhook.name == "_minecraft" and webhook.user == discord_bot.user:
+                    # Copy the list to avoid some problems since
+                    # we're deleting indicies form it as we loop
+                    # through it
+                    if webhook.url in WEBHOOKS[:]:
+                        WEBHOOKS.remove(webhook.url)
                     await webhook.delete()
             if deleted < 1:
                 msg = "The bot was not chatting here!"
                 await message.channel.send(msg)
                 return
             else:
-                msg = "The bot will no longer here!"
+                msg = "The bot will no longer chat here!"
                 await message.channel.send(msg)
                 return
 
@@ -604,7 +608,7 @@ def main():
                     await error_msg.delete()
             finally:
                 return
-            
+
         elif not message.author.bot:
             session = database_session.get_session()
             channel_should_chat = session.query(DiscordChannel).filter_by(channel_id=this_channel).first()
@@ -663,7 +667,8 @@ def main():
                         PREVIOUS_MESSAGE = message_to_send
                         NEXT_MESSAGE_TIME = datetime.now(timezone.utc) + timedelta(seconds=config.message_delay)
 
-                        log.info("Outgoing message from discord: Username: {} Message: {}".format(minecraft_username, message_to_send))
+                        log.info("Outgoing message from discord: Username: {} Message: {}".format(
+                            minecraft_username, message_to_send))
 
                         for channel in channels:
                             webhooks = await discord_bot.get_channel(channel.channel_id).webhooks()
@@ -685,8 +690,8 @@ def main():
                             if not dm_channel:
                                 await message.author.create_dm()
                             send_channel = message.author.dm_channel
-                        msg = "Unable to send chat message: there is no Minecraft account linked to this discord account," \
-                              "please run `mc!register`."
+                        msg = "Unable to send chat message: there is no Minecraft account linked to this discord " \
+                              "account, please run `mc!register`."
                         await send_channel.send(msg)
                     except discord.errors.Forbidden:
                         if isinstance(message.author, discord.abc.User):

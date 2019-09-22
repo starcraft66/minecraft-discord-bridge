@@ -5,6 +5,9 @@ name = "pypi"
 
 [dev-packages]
 flake8 = "*"
+pylint = "*"
+tox = "*"
+setuptools = "*"
 
 [packages]
 requests = "*"
@@ -13,9 +16,6 @@ future = "*"
 sqlalchemy = "*"
 mcstatus = "*"
 quarry = "*"
-discord.py = "*"
+discord = {py = "*"}
 bidict = "*"
 minecraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
-
-[requires]
-python_version = "3.7"
