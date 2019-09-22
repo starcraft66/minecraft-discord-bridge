@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir pipenv \
 
 VOLUME "/data"
 
-CMD [ "python", "-m", "pipenv", "run", "python", "-m", "minecraft-discord-bridge" ]
+CMD [ "python", "-m", "pipenv", "run", "python", "-m", "minecraft_discord_bridge" ]
