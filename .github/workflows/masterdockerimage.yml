@@ -31,7 +31,7 @@ jobs:
     - name: Build the master docker image
       uses: actions/docker/cli@master
       with:
-        args: "build -t starcraft66/minecraft-discord-bridge:latest -t docker.pkg.github.com/starcraft66/docker-minecraft-discord-bridge/minecraft-discord-bridge:latest ."
+        args: "build -t starcraft66/minecraft-discord-bridge:latest -t docker.pkg.github.com/starcraft66/minecraft-discord-bridge/minecraft-discord-bridge:latest ."
     - name: Push the master docker image to Docker Hub
       uses: actions/docker/cli@master
       with:
@@ -39,4 +39,4 @@ jobs:
     - name: Push the master docker image to GitHub Package Registry
       uses: actions/docker/cli@master
       with:
-        args: "push docker.pkg.github.com/starcraft66/docker-minecraft-discord-bridge/minecraft-discord-bridge:latest"
+        args: "push docker.pkg.github.com/starcraft66/minecraft-discord-bridge/minecraft-discord-bridge:latest"
