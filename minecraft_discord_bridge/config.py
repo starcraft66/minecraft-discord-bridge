@@ -1,14 +1,13 @@
 import json
 import logging
 
-log = logging.getLogger("bridge.config")
-
 
 class Configuration(object):
     def __init__(self, path):
+        self.logger = logging.getLogger("bridge.config")
         try:
-            with open(path, 'r') as f:
-                self._config = json.load(f)
+            with open(path, 'r') as file:
+                self._config = json.load(file)
             if self._config:
                 self.mc_username = self._config["MAIN"]["MC_USERNAME"]
                 self.mc_password = self._config["MAIN"]["MC_PASSWORD"]
@@ -29,8 +28,8 @@ class Configuration(object):
                 self.es_username = self._config["ELASTICSEARCH"]["USERNAME"]
                 self.es_password = self._config["ELASTICSEARCH"]["PASSWORD"]
             else:
-                logging.error("error reading config")
+                self.logger.error("error reading config")
                 exit(1)
         except IOError:
-            logging.error("error reading config")
+            self.logger.error("error reading config")
             exit(1)
