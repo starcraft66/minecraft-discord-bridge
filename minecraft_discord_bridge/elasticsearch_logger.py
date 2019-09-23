@@ -38,20 +38,20 @@ class ElasticsearchLogger():
         }
         self.post_request("chat_messages/_doc/", es_payload)
 
-    def log_raw_message(self, type, message):
+    def log_raw_message(self, msg_type, message):
         es_payload = {
             "time": (lambda: int(round(time.time() * 1000)))(),
-            "type": type,
+            "type": msg_type,
             "message": message,
         }
         self.post_request("raw_messages/_doc/", es_payload)
 
     def post_request(self, endpoint, payload):
-        theURL = "{}{}".format(self.url, endpoint)
+        the_url = "{}{}".format(self.url, endpoint)
         if self.username and self.password:
-            post = requests.post(theURL, auth=(self.username, self.password), json=payload)
+            post = requests.post(the_url, auth=(self.username, self.password), json=payload)
         else:
-            post = requests.post(theURL, json=payload)
+            post = requests.post(the_url, json=payload)
         self.log.debug(post.text)
 
 
