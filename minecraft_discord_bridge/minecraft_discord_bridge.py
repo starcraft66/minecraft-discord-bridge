@@ -101,6 +101,7 @@ class MinecraftDiscordBridge():
                         send_channel = message.author.dm_channel
                     msg = self.get_discord_help_string()
                     await send_channel.send(msg)
+                    return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
                         msg = "{}, please allow private messages from this bot.".format(message.author.mention)
@@ -136,6 +137,7 @@ class MinecraftDiscordBridge():
                     session.close()
                     del session
                     await send_channel.send(msg)
+                    return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
                         msg = "{}, please allow private messages from this bot.".format(message.author.mention)
@@ -159,6 +161,7 @@ class MinecraftDiscordBridge():
                         dm_channel = message.author.dm_channel
                         msg = "Sorry, you do not have permission to execute that command!"
                         await dm_channel.send(msg)
+                        return
                     except discord.errors.Forbidden:
                         if isinstance(message.author, discord.abc.User):
                             msg = "{}, please allow private messages from this bot.".format(message.author.mention)
@@ -197,6 +200,7 @@ class MinecraftDiscordBridge():
                         dm_channel = message.author.dm_channel
                         msg = "Sorry, you do not have permission to execute that command!"
                         await dm_channel.send(msg)
+                        return
                     except discord.errors.Forbidden:
                         if isinstance(message.author, discord.abc.User):
                             msg = "{}, please allow private messages from this bot.".format(message.author.mention)
@@ -242,6 +246,7 @@ class MinecraftDiscordBridge():
                                 self.strip_colour(player_list)), self.escape_markdown(
                                     self.strip_colour(self.tab_footer)))
                     await send_channel.send(msg)
+                    return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
                         msg = "{}, please allow private messages from this bot.".format(message.author.mention)
@@ -262,6 +267,7 @@ class MinecraftDiscordBridge():
                         send_channel = message.author.dm_channel
                     msg = "Unknown command, type `mc!help` for a list of commands."
                     await send_channel.send(msg)
+                    return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
                         msg = "{}, please allow private messages from this bot.".format(message.author.mention)
@@ -314,6 +320,7 @@ class MinecraftDiscordBridge():
                                         send_channel = message.author.dm_channel
                                     msg = "Your message \"{}\" has been rate-limited.".format(message.clean_content)
                                     await send_channel.send(msg)
+                                    return
                                 except discord.errors.Forbidden:
                                     if isinstance(message.author, discord.abc.User):
                                         msg = "{}, please allow private messages from this bot.".format(
@@ -354,6 +361,7 @@ class MinecraftDiscordBridge():
                             msg = "Unable to send chat message: there is no Minecraft account linked to this discord " \
                                 "account, please run `mc!register`."
                             await send_channel.send(msg)
+                            return
                         except discord.errors.Forbidden:
                             if isinstance(message.author, discord.abc.User):
                                 msg = "{}, please allow private messages from this bot.".format(message.author.mention)
