@@ -1,5 +1,6 @@
+![](https://github.com/starcraft66/minecraft-discord-bridge/workflows/Docker%20Image/badge.svg)
 # Minecraft Discord Bridge
-Required Python version: 3.6 or later.
+Required Python version: 3.5 or later.
 
 Docker is not required to run this bot but its use is strongly encouraged for ease of management.
 
@@ -24,7 +25,7 @@ Docker is not required to run this bot but its use is strongly encouraged for ea
         ```
         python -m pipenv --three
         python -m pipenv install
-        python -m pipenv run ./webhook-bridge.py
+        python -m pipenv run -m minecraft_discord_bridge
         ```
         
     2. If you are using docker, just use the included `docker-compose.yml` to get up and running.
@@ -87,7 +88,7 @@ All of the configuration data is stored in a file called `config.json` that must
 |AUTH_SERVER.BIND.IP        |""                         |The IPv4 address which the authentication server will bind to (set to blank for 0.0.0.0)
 |AUTH_SERVER.PORT           |9822                       |The port which the authentication server will bind to
 |AUTH_SERVER.DNS_WILDCARD   |""                         |Must be set to a wildcard DNS `CNAME` record that points to an `A` record pointing to the authentication server's IP address
-|DATABASE.CONNECTION_STRING |"sqlite:////data/db.sqlite"|Must be set to any valid `SQLAlchemy` connection string. Defaults to an empty sqlit database in `/data` for docker user
+|DATABASE.CONNECTION_STRING |"sqlite:////data/db.sqlite"|Must be set to any valid `SQLAlchemy` connection string. Defaults to an empty sqlite database in `/data` for docker users
 |ELASTICSEARCH.ENABLED      |false                      |Whether or not to enable elasticsearch analytics collection
 |ELASTICSEARCH.URL          |""                         |Fully qualified URL to the elasticsearch server
 |ELASTICSEARCH.AUTH         |false                      |Whether or not the elasticsearch http endpoint is protected by HTTP Basic authentication
