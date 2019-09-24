@@ -25,7 +25,7 @@ Docker is not required to run this bot but its use is strongly encouraged for ea
         ```
         python -m pipenv --three
         python -m pipenv install
-        python -m pipenv run -m minecraft_discord_bridge
+        python -m pipenv run python -m minecraft_discord_bridge
         ```
         
     2. If you are using docker, just use the included `docker-compose.yml` to get up and running.
