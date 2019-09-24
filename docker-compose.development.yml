@@ -1,9 +1,10 @@
 version: '2.3'
 services:
   webhook-bridge:
-    image: starcraft66/minecraft-discord-bridge:latest
+    build: .
     ports:
       - 9822:9822
     volumes:
+      - ./:/app:Z
       - ./:/data:Z
     restart: always
