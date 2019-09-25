@@ -71,6 +71,11 @@ class MinecraftDiscordBridge():
             for channel in channels:
                 channel_id = channel.channel_id
                 discord_channel = self.discord_bot.get_channel(channel_id)
+                if discord_channel is None:
+                    session = self.database_session.get_session()
+                    session.query(DiscordChannel).filter_by(channel_id=channel_id).delete()
+                    session.close()
+                    continue
                 channel_webhooks = await discord_channel.webhooks()
                 found = False
                 for webhook in channel_webhooks:
@@ -338,7 +343,13 @@ class MinecraftDiscordBridge():
                                              minecraft_username, message_to_send)
 
                             for channel in channels:
-                                webhooks = await self.discord_bot.get_channel(channel.channel_id).webhooks()
+                                discord_channel = self.discord_bot.get_channel(channel.channel_id)
+                                if not discord_channel:
+                                    session = self.database_session.get_session()
+                                    session.query(DiscordChannel).filter_by(channel_id=channel.channel_id).delete()
+                                    session.close()
+                                    continue
+                                webhooks = await discord_channel.webhooks()
                                 for webhook in webhooks:
                                     if webhook.name == "_minecraft":
                                         await webhook.send(
