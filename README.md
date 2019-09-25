@@ -34,11 +34,9 @@ Docker is not required to run this bot but its use is strongly encouraged for ea
         docker-compose up -d
         ```
         
-5. If this is the first time you run this bridge, you need to invite it to your discord guild with the following link:
-
-    **Note:** Make sure to replace the "<CLIENT_ID>" in the link below with your bot's client ID
-     
-    `https://discordapp.com/oauth2/authorize?client_id=<CLIENT_ID>&scope=bot&permissions=536879104`
+5. If this is the first time you run this bridge, you need to invite it to your discord guild.
+ 
+    A log message containing the invite link will be printed out every time the bridge is started. Launch the bridge and click the link in the log and follow the prompts on discord's website to add the bridge's bot to your guild.
      
     Once it has joined your server, create a text channel for it to post in, then press the "Edit Channel" button on that channel. From there, press the "Permissions" button and click the "+" button and add "Minecraft Chat Bridge" to the room and close the permissions window.
      
