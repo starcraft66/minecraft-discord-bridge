@@ -64,6 +64,7 @@ class MinecraftDiscordBridge():
         @self.discord_bot.event
         async def on_ready():  # pylint: disable=W0612
             self.logger.info("Discord bot logged in as %s (%s)", self.discord_bot.user.name, self.discord_bot.user.id)
+            await self.discord_bot.change_presence(activity=discord.Game("mc!help for help"))
             self.webhooks = []
             session = self.database_session.get_session()
             channels = session.query(DiscordChannel).all()
