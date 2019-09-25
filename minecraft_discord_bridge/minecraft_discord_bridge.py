@@ -473,6 +473,8 @@ class MinecraftDiscordBridge():
         escaped_string = md_string.replace("\\", "\\\\")
         escaped_string = escaped_string.replace("_", "\\_")
         escaped_string = escaped_string.replace("*", "\\*")
+        if md_string.startswith(">"):
+            md_string = "\\" + md_string
         return escaped_string
 
     def strip_colour(self, dirty_string):
