@@ -51,6 +51,8 @@ class MinecraftDiscordBridge():
         self.database_session = DatabaseSession()
         self.logger = logging.getLogger("bridge")
         self.database_session.initialize(self.config)
+        self.bot_perms = discord.Permissions()
+        self.bot_perms.update(manage_messages=True, manage_webhooks=True)
         # We need to import twisted after setting up the logger because twisted hijacks our logging
         from . import auth_server
         auth_server.DATABASE_SESSION = self.database_session
@@ -64,6 +66,8 @@ class MinecraftDiscordBridge():
         @self.discord_bot.event
         async def on_ready():  # pylint: disable=W0612
             self.logger.info("Discord bot logged in as %s (%s)", self.discord_bot.user.name, self.discord_bot.user.id)
+            self.logger.info("Discord bot invite link: %s", discord.utils.oauth_url(
+                client_id=self.discord_bot.user.id, permissions=self.bot_perms))
             await self.discord_bot.change_presence(activity=discord.Game("mc!help for help"))
             self.webhooks = []
             session = self.database_session.get_session()
@@ -251,6 +255,27 @@ class MinecraftDiscordBridge():
                             self.strip_colour(self.tab_header)), self.escape_markdown(
                                 self.strip_colour(player_list)), self.escape_markdown(
                                     self.strip_colour(self.tab_footer)))
+                    await send_channel.send(msg)
+                    return
+                except discord.errors.Forbidden:
+                    if isinstance(message.author, discord.abc.User):
+                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        error_msg = await message.channel.send(msg)
+                        await asyncio.sleep(3)
+                        await error_msg.delete()
+                    return
+
+            elif message.content.startswith("mc!botlink"):
+                send_channel = message.channel
+                try:
+                    if isinstance(message.channel, discord.abc.GuildChannel):
+                        await message.delete()
+                        dm_channel = message.author.dm_channel
+                        if not dm_channel:
+                            await message.author.create_dm()
+                        send_channel = message.author.dm_channel
+                    msg = "Use the following link to invite this bot to a guild:\n{}".format(discord.utils.oauth_url(
+                        client_id=self.discord_bot.user.id, permissions=self.bot_perms))
                     await send_channel.send(msg)
                     return
                 except discord.errors.Forbidden:
@@ -463,6 +488,7 @@ class MinecraftDiscordBridge():
                     "User commands:\n"
                     "`mc!tab`: Sends you the content of the server's player/tab list\n"
                     "`mc!register`: Starts the minecraft account registration process\n"
+                    "`mc!botlink`: Sends you the link to invite this bot to a guild\n"
                     "To start chatting on the minecraft server, please register your account using `mc!register`.")
         return help_str
 
