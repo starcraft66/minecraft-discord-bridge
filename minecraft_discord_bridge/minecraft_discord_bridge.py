@@ -507,12 +507,31 @@ class MinecraftDiscordBridge():
         return emoji_pattern.sub(r'', dirty_string)
 
     def escape_markdown(self, md_string):
-        # Absolutely needs to go first or it will replace our escaping slashes!
-        escaped_string = md_string.replace("\\", "\\\\")
-        escaped_string = escaped_string.replace("_", "\\_")
-        escaped_string = escaped_string.replace("*", "\\*")
-        if md_string.startswith(">"):
-            md_string = "\\" + md_string
+        # Don't mess with urls
+        url_regex = re.compile(
+            r'^(?:http|ftp)s?://'  # http:// or https://
+            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
+            r'localhost|'  # localhost...
+            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|'  # ...or ipv4
+            r'\[?[A-F0-9]*:[A-F0-9:]+\]?)'  # ...or ipv6
+            r'(?::\d+)?'  # optional port
+            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        escaped_string = ""
+        # Split the message into pieces, each "word" speparated into a string is a piece
+        # Discord ignores formatting characters in urls so we can't just replace the whole
+        # string... We need to go through words one by one to find out what is a url (don't)
+        # escape) and what isn't (escape).
+        for piece in md_string.split(" "):
+            if url_regex.match(piece):
+                escaped_string = "{} {}".format(escaped_string, piece)
+                continue
+            # Absolutely needs to go first or it will replace our escaping slashes!
+            piece = piece.replace("\\", "\\\\")
+            piece = piece.replace("_", "\\_")
+            piece = piece.replace("*", "\\*")
+            escaped_string = "{} {}".format(escaped_string, piece)
+        if escaped_string.startswith(">"):
+            escaped_string = "\\" + escaped_string
         return escaped_string
 
     def strip_colour(self, dirty_string):
