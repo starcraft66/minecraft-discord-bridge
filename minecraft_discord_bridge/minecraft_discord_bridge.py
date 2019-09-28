@@ -23,6 +23,7 @@ import discord
 from mcstatus import MinecraftServer
 from bidict import bidict
 
+import minecraft_discord_bridge
 from .database_session import DatabaseSession
 from .elasticsearch_logger import ElasticsearchLogger, ConnectionReason
 from .config import Configuration
@@ -286,6 +287,28 @@ class MinecraftDiscordBridge():
                         await error_msg.delete()
                     return
 
+            elif message.content.startswith("mc!about"):
+                send_channel = message.channel
+                try:
+                    if isinstance(message.channel, discord.abc.GuildChannel):
+                        await message.delete()
+                        dm_channel = message.author.dm_channel
+                        if not dm_channel:
+                            await message.author.create_dm()
+                        send_channel = message.author.dm_channel
+                    msg = "This bot is running minecraft-discord-bridge version {}.\n" \
+                          "The source code is available at https://github.com/starcraft66/minecraft-discord-bridge" \
+                        .format(minecraft_discord_bridge.__version__)
+                    await send_channel.send(msg)
+                    return
+                except discord.errors.Forbidden:
+                    if isinstance(message.author, discord.abc.User):
+                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        error_msg = await message.channel.send(msg)
+                        await asyncio.sleep(3)
+                        await error_msg.delete()
+                    return
+
             elif message.content.startswith("mc!"):
                 # Catch-all
                 send_channel = message.channel
@@ -489,6 +512,7 @@ class MinecraftDiscordBridge():
                     "`mc!tab`: Sends you the content of the server's player/tab list\n"
                     "`mc!register`: Starts the minecraft account registration process\n"
                     "`mc!botlink`: Sends you the link to invite this bot to a guild\n"
+                    "`mc!about`: Sends you information about the running bridge\n"
                     "To start chatting on the minecraft server, please register your account using `mc!register`.")
         return help_str
 
