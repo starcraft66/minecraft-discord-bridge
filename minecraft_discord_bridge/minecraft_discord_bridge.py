@@ -717,7 +717,8 @@ class MinecraftDiscordBridge():
                 for webhook in self.webhooks:
                     requests.post(webhook, json=webhook_payload)
                 del self.uuid_cache[action.uuid]
-                del self.player_list[action.uuid]
+                if action.uuid in self.player_list:
+                    del self.player_list[action.uuid]
                 if self.config.es_enabled:
                     self.es_logger.log_connection(
                         uuid=action.uuid, reason=ConnectionReason.DISCONNECTED, count=len(self.player_list))
