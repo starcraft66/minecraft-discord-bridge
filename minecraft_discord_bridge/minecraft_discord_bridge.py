@@ -565,15 +565,16 @@ class MinecraftDiscordBridge():
         # escape) and what isn't (escape).
         for piece in md_string.split(" "):
             if url_regex.match(piece):
-                escaped_string = "{} {}".format(escaped_string, piece)
+                escaped_string += "{} ".format(piece)
                 continue
             # Absolutely needs to go first or it will replace our escaping slashes!
             piece = piece.replace("\\", "\\\\")
             piece = piece.replace("_", "\\_")
             piece = piece.replace("*", "\\*")
-            escaped_string = "{} {}".format(escaped_string, piece)
+            escaped_string += "{} ".format(piece)
         if escaped_string.startswith(">"):
             escaped_string = "\\" + escaped_string
+        escaped_string.strip()
         return escaped_string
 
     def strip_colour(self, dirty_string):
