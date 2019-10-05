@@ -21,11 +21,12 @@ import time
 from enum import Enum
 import logging
 
-import requests
+import requests_futures
 
 
 class ElasticsearchLogger():
-    def __init__(self, url: str, username: str = "", password: str = ""):
+    def __init__(self, futures_session: requests_futures.sessions, url: str, username: str = "", password: str = ""):
+        self.futures_session = futures_session
         self.url = url
         self.username = username
         self.password = password
@@ -68,10 +69,10 @@ class ElasticsearchLogger():
     def post_request(self, endpoint, payload):
         the_url = "{}{}".format(self.url, endpoint)
         if self.username and self.password:
-            post = requests.post(the_url, auth=(self.username, self.password), json=payload)
+            future = self.futures_session.post(the_url, auth=(self.username, self.password), json=payload)
         else:
-            post = requests.post(the_url, json=payload)
-        self.log.debug(post.text)
+            future = self.futures_session.post(the_url, json=payload)
+        self.log.debug(future.result().text)
 
 
 class ConnectionReason(Enum):
