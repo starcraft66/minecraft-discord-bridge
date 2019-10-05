@@ -519,7 +519,7 @@ class MinecraftDiscordBridge():
         if username not in self.uuid_cache.inv:
             try:
                 player_uuid = self.req_future_session.get(
-                    "https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
+                    "https://api.mojang.com/users/profiles/minecraft/{}".format(username)).result().json()["id"]
                 long_uuid = uuid.UUID(player_uuid)
                 self.uuid_cache.inv[username] = str(long_uuid)
                 return player_uuid
