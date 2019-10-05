@@ -1,11 +1,12 @@
 import setuptools
+import minecraft_discord_bridge
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="minecraft-discord-bridge",
-    version="0.0.1",
+    version=minecraft_discord_bridge.__version__,
     author="Tristan Gosselin-Hane",
     author_email="starcraft66@gmail.com",
     description="A bridge between minecraft and discord chat",
