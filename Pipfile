@@ -19,3 +19,4 @@ quarry = "*"
 discord = {py = "*"}
 bidict = "*"
 minecraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
+requests-futures = "*"

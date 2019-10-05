@@ -32,7 +32,7 @@ import asyncio
 from threading import Thread
 from datetime import datetime, timedelta, timezone
 
-import requests
+from requests import RequestException
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
 from minecraft.networking.connection import Connection
@@ -40,6 +40,7 @@ from minecraft.networking.packets import clientbound, serverbound
 import discord
 from mcstatus import MinecraftServer
 from bidict import bidict
+from requests_futures.sessions import FuturesSession
 
 import minecraft_discord_bridge
 from .database_session import DatabaseSession
@@ -72,15 +73,20 @@ class MinecraftDiscordBridge():
         self.database_session.initialize(self.config)
         self.bot_perms = discord.Permissions()
         self.bot_perms.update(manage_messages=True, manage_webhooks=True)
+        # Async http request pool
+        self.req_future_session = FuturesSession(max_workers=100)
         # We need to import twisted after setting up the logger because twisted hijacks our logging
         from . import auth_server
         auth_server.DATABASE_SESSION = self.database_session
         if self.config.es_enabled:
             if self.config.es_auth:
                 self.es_logger = ElasticsearchLogger(
-                    self.config.es_url, self.config.es_username, self.config.es_password)
+                    self.req_future_session,
+                    self.config.es_url,
+                    self.config.es_username,
+                    self.config.es_password)
             else:
-                self.es_logger = ElasticsearchLogger(self.config.es_url)
+                self.es_logger = ElasticsearchLogger(self.req_future_session, self.config.es_url)
 
         @self.discord_bot.event
         async def on_ready():  # pylint: disable=W0612
@@ -493,8 +499,8 @@ class MinecraftDiscordBridge():
         if mc_uuid not in self.uuid_cache:
             try:
                 short_uuid = mc_uuid.replace("-", "")
-                mojang_response = requests.get("https://api.mojang.com/user/profiles/{}/names".format(
-                    short_uuid)).json()
+                mojang_response = self.req_future_session.get("https://api.mojang.com/user/profiles/{}/names".format(
+                    short_uuid)).result().json()
                 if len(mojang_response) > 1:
                     # Multiple name changes
                     player_username = mojang_response[-1]["name"]
@@ -503,7 +509,7 @@ class MinecraftDiscordBridge():
                     player_username = mojang_response[0]["name"]
                 self.uuid_cache[mc_uuid] = player_username
                 return player_username
-            except requests.RequestException as ex:
+            except RequestException as ex:
                 self.logger.error(ex, exc_info=True)
                 self.logger.error("Failed to lookup %s's username using the Mojang API.", mc_uuid)
         else:
@@ -512,12 +518,12 @@ class MinecraftDiscordBridge():
     def mc_username_to_uuid(self, username: str):
         if username not in self.uuid_cache.inv:
             try:
-                player_uuid = requests.get(
+                player_uuid = self.req_future_session.get(
                     "https://api.mojang.com/users/profiles/minecraft/{}".format(username)).json()["id"]
                 long_uuid = uuid.UUID(player_uuid)
                 self.uuid_cache.inv[username] = str(long_uuid)
                 return player_uuid
-            except requests.RequestException:
+            except RequestException:
                 self.logger.error("Failed to lookup %s's username using the Mojang API.", username)
         else:
             return self.uuid_cache.inv[username]
@@ -701,7 +707,7 @@ class MinecraftDiscordBridge():
                         'embeds': [{'color': 65280, 'title': '**Joined the game**'}]
                     }
                     for webhook in self.webhooks:
-                        requests.post(webhook, json=webhook_payload)
+                        self.req_future_session.post(webhook, json=webhook_payload)
                     if self.config.es_enabled:
                         self.es_logger.log_connection(
                             uuid=action.uuid, reason=ConnectionReason.CONNECTED, count=len(self.player_list))
@@ -734,7 +740,7 @@ class MinecraftDiscordBridge():
                     'embeds': [{'color': 16711680, 'title': '**Left the game**'}]
                 }
                 for webhook in self.webhooks:
-                    requests.post(webhook, json=webhook_payload)
+                    self.req_future_session.post(webhook, json=webhook_payload)
                 del self.uuid_cache[action.uuid]
                 if action.uuid in self.player_list:
                     del self.player_list[action.uuid]
@@ -785,7 +791,7 @@ class MinecraftDiscordBridge():
                 'content': '{}'.format(message)
             }
             for webhook in self.webhooks:
-                requests.post(webhook, json=webhook_payload)
+                self.req_future_session.post(webhook, json=webhook_payload)
             if self.config.es_enabled:
                 self.es_logger.log_chat_message(
                     uuid=player_uuid, display_name=username, message=original_message, message_unformatted=chat_string)
