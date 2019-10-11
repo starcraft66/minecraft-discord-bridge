@@ -75,6 +75,8 @@ class MinecraftDiscordBridge():
         self.bot_perms.update(manage_messages=True, manage_webhooks=True)
         # Async http request pool
         self.req_future_session = FuturesSession(max_workers=100)
+        self.reactor_thread = Thread(target=self.run_auth_server, args=(self.config.auth_port,))
+        self.aioloop = asyncio.get_event_loop()
         # We need to import twisted after setting up the logger because twisted hijacks our logging
         from . import auth_server
         auth_server.DATABASE_SESSION = self.database_session
@@ -461,7 +463,6 @@ class MinecraftDiscordBridge():
                     del session
 
     def run(self):
-        self.reactor_thread = Thread(target=self.run_auth_server, args=(self.config.auth_port,))
         self.reactor_thread.start()
 
         self.logger.debug("Checking if the server {} is online before connecting.")
@@ -493,7 +494,6 @@ class MinecraftDiscordBridge():
 
         self.register_handlers(self.connection)
         self.connection.connect()
-        self.aioloop = asyncio.get_event_loop()
         try:
             self.aioloop.run_until_complete(self.discord_bot.start(self.config.discord_token))
         except KeyboardInterrupt:
