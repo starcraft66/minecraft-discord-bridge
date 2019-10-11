@@ -461,8 +461,8 @@ class MinecraftDiscordBridge():
                     del session
 
     def run(self):
-        reactor_thread = Thread(target=self.run_auth_server, args=(self.config.auth_port,))
-        reactor_thread.start()
+        self.reactor_thread = Thread(target=self.run_auth_server, args=(self.config.auth_port,))
+        self.reactor_thread.start()
 
         self.logger.debug("Checking if the server {} is online before connecting.")
 
@@ -493,7 +493,22 @@ class MinecraftDiscordBridge():
 
         self.register_handlers(self.connection)
         self.connection.connect()
-        self.discord_bot.run(self.config.discord_token)
+        self.aioloop = asyncio.get_event_loop()
+        try:
+            self.aioloop.run_until_complete(self.discord_bot.start(self.config.discord_token))
+        except KeyboardInterrupt:
+            # log out of discord
+            self.aioloop.run_until_complete(self.discord_bot.logout())
+            # log out of minecraft
+            self.connection.disconnect()
+            # shut down auth server
+            from twisted.internet import reactor
+            reactor.callFromThread(reactor.stop)
+            # clean up auth server thread
+            self.reactor_thread.join()
+        finally:
+            # close the asyncio event loop discord uses
+            self.aioloop.close()
 
     def mc_uuid_to_username(self, mc_uuid: str):
         if mc_uuid not in self.uuid_cache:
@@ -612,10 +627,7 @@ class MinecraftDiscordBridge():
         self.logger.info("Starting authentication server on port %d", port)
 
         factory.listen("", port)
-        try:
-            reactor.run(installSignalHandlers=False)
-        except KeyboardInterrupt:
-            reactor.stop()
+        reactor.run(installSignalHandlers=False)
 
     def generate_random_auth_token(self, length):
         letters = string.ascii_lowercase + string.digits + string.ascii_uppercase
