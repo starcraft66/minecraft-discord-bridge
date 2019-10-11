@@ -29,6 +29,7 @@ import random
 import string
 import uuid
 import asyncio
+import signal
 from threading import Thread
 from datetime import datetime, timedelta, timezone
 
@@ -820,7 +821,12 @@ class MinecraftDiscordBridge():
             self.connection.write_packet(packet)
 
 
+def handle_sigterm(*args, **kwargs):
+    raise KeyboardInterrupt()
+
+
 def main():
+    signal.signal(signal.SIGTERM, handle_sigterm)
     bridge = MinecraftDiscordBridge()
     bridge.run()
 
