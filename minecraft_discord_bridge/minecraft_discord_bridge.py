@@ -20,6 +20,7 @@
 
 from __future__ import print_function
 
+import os
 import sys
 import re
 import json
@@ -54,6 +55,7 @@ from .database import DiscordChannel, AccountLinkToken, DiscordAccount
 
 class MinecraftDiscordBridge():
     def __init__(self):
+        self.return_code = os.EX_OK
         self.session_token = ""
         self.uuid_cache = bidict()
         self.webhooks = []
@@ -467,8 +469,6 @@ class MinecraftDiscordBridge():
                     del session
 
     def run(self):
-        self.reactor_thread.start()
-
         self.logger.debug("Checking if the server {} is online before connecting.")
 
         if not self.config.mc_online:
@@ -486,7 +486,7 @@ class MinecraftDiscordBridge():
                 self.auth_token.authenticate(self.config.mc_username, self.config.mc_password)
             except YggdrasilError as ex:
                 self.logger.info(ex)
-                sys.exit()
+                sys.exit(os.EX_TEMPFAIL)
             self.bot_username = self.auth_token.profile.name
             self.logger.info("Logged in as %s...", self.auth_token.profile.name)
             while not self.is_server_online():
@@ -498,6 +498,7 @@ class MinecraftDiscordBridge():
 
         self.register_handlers(self.connection)
         self.connection_retries += 1
+        self.reactor_thread.start()
         self.connection.connect()
         try:
             self.aioloop.run_until_complete(self.discord_bot.start(self.config.discord_token))
@@ -514,6 +515,7 @@ class MinecraftDiscordBridge():
         finally:
             # close the asyncio event loop discord uses
             self.aioloop.close()
+        return self.return_code
 
     def mc_uuid_to_username(self, mc_uuid: str):
         if mc_uuid not in self.uuid_cache:
@@ -648,6 +650,7 @@ class MinecraftDiscordBridge():
             # This is possibly a huge hack... Since we cannot reliably raise exceptions on this thread
             # for them to be caught on the main thread, we call interrupt_main to raise a KeyboardInterrupt
             # on main and tell it to shut the bridge down.
+            self.return_code = os.EX_TEMPFAIL
             _thread.interrupt_main()
             return
         self.previous_player_list = self.player_list.copy()
@@ -842,7 +845,8 @@ def handle_sigterm(*args, **kwargs):
 def main():
     signal.signal(signal.SIGTERM, handle_sigterm)
     bridge = MinecraftDiscordBridge()
-    bridge.run()
+    return_code = bridge.run()
+    sys.exit(return_code)
 
 
 if __name__ == "__main__":
