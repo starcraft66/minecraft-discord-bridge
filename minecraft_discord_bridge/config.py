@@ -36,6 +36,7 @@ class Configuration(object):
                 self.discord_token = self._config["MAIN"]["DISCORD_APP_TOKEN"]
                 self.logging_level = self._config["MAIN"]["LOG_LEVEL"]
                 self.message_delay = self._config["MAIN"]["MESSAGE_DELAY"]
+                self.failsafe_retries = self._config["MAIN"]["FAILSAFE_RETRIES"]
                 self.admin_users = self._config["MAIN"]["ADMINS"]
                 self.auth_ip = self._config["AUTH_SERVER"]["BIND_IP"]
                 self.auth_port = self._config["AUTH_SERVER"]["PORT"]

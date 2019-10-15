@@ -43,6 +43,8 @@ from mcstatus import MinecraftServer
 from bidict import bidict
 from requests_futures.sessions import FuturesSession
 
+import _thread
+
 import minecraft_discord_bridge
 from .database_session import DatabaseSession
 from .elasticsearch_logger import ElasticsearchLogger, ConnectionReason
@@ -66,6 +68,7 @@ class MinecraftDiscordBridge():
         # Initialize the discord part
         self.discord_bot = discord.Client()
         self.config = Configuration("config.json")
+        self.connection_retries = 0
         self.auth_token = None
         self.connection = None
         self.setup_logging(self.config.logging_level)
@@ -494,10 +497,11 @@ class MinecraftDiscordBridge():
                 handle_exception=self.minecraft_handle_exception)
 
         self.register_handlers(self.connection)
+        self.connection_retries += 1
         self.connection.connect()
         try:
             self.aioloop.run_until_complete(self.discord_bot.start(self.config.discord_token))
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, SystemExit):
             # log out of discord
             self.aioloop.run_until_complete(self.discord_bot.logout())
             # log out of minecraft
@@ -638,6 +642,14 @@ class MinecraftDiscordBridge():
         self.logger.info('Disconnected.')
         if json_data:
             self.logger.info("Disconnect json data: %s", json_data)
+        if self.connection_retries >= self.config.failsafe_retries:
+            self.logger.info("Failed to join the server %s times in a row. Exiting.", self.connection_retries)
+            self.logger.info("Use a process supervisor if you wish to automatically restart the bridge.")
+            # This is possibly a huge hack... Since we cannot reliably raise exceptions on this thread
+            # for them to be caught on the main thread, we call interrupt_main to raise a KeyboardInterrupt
+            # on main and tell it to shut the bridge down.
+            _thread.interrupt_main()
+            return
         self.previous_player_list = self.player_list.copy()
         self.accept_join_events = False
         self.player_list = bidict()
@@ -649,6 +661,7 @@ class MinecraftDiscordBridge():
             self.logger.info('Not reconnecting to server because it appears to be offline.')
             time.sleep(15)
         self.logger.info('Reconnecting.')
+        self.connection_retries += 1
         self.connection.connect()
 
     def handle_disconnect_packet(self, disconnect_packet):
@@ -764,6 +777,7 @@ class MinecraftDiscordBridge():
     def handle_join_game(self, join_game_packet):
         self.logger.info('Connected and joined game as entity id %d', join_game_packet.entity_id)
         self.player_list = bidict()
+        self.connection_retries = 0
 
     def handle_chat(self, chat_packet):
         json_data = json.loads(chat_packet.json_data)
@@ -822,7 +836,7 @@ class MinecraftDiscordBridge():
 
 
 def handle_sigterm(*args, **kwargs):
-    raise KeyboardInterrupt()
+    raise KeyboardInterrupt
 
 
 def main():
