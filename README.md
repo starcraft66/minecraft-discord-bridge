@@ -82,6 +82,7 @@ All of the configuration data is stored in a file called `config.json` that must
 |MAIN.DISCORD_APP_TOKEN     |""                         |The discord bot token the birdge will use to log into discord
 |MAIN.LOG_LEVEL             |"INFO"                     |Set the log level, can be `INFO` or `DEBUG`
 |MAIN.MESSAGE_DELAY         |1.5                        |Set the delay between messages sent from discord to minecraft
+|MAIN.FAILSAFE_RETRIES      |3                          |The amount of times to try reconnecting to an online server before giving up and exiting.
 |MAIN.ADMINS                |\[283983554051047425\]     |Array of discord user ids that have administrative access to the bot
 |AUTH_SERVER.BIND.IP        |""                         |The IPv4 address which the authentication server will bind to (set to blank for 0.0.0.0)
 |AUTH_SERVER.PORT           |9822                       |The port which the authentication server will bind to

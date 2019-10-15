@@ -8,6 +8,7 @@
         "DISCORD_APP_TOKEN": "",
         "LOG_LEVEL": "INFO",
         "MESSAGE_DELAY": 1.5,
+        "FAILSAFE_RETRIES": 3,
         "ADMINS": [
             283983554051047425
         ]
