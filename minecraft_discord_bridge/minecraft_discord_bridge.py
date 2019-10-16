@@ -362,6 +362,14 @@ class MinecraftDiscordBridge():
                         await error_msg.delete()
                     return
 
+            elif "https://discord.gg" in message.content.lower():
+                await message.delete() # Deletes the message
+                # Add something more if you want to
+
+                msg = f"{message.author.mention} invites aren't allowed!" # Your message
+
+                await send_channel.send(msg)
+            
             elif not message.author.bot:
                 session = self.database_session.get_session()
                 channel_should_chat = session.query(DiscordChannel).filter_by(channel_id=this_channel).first()
