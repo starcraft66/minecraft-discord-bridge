@@ -9,6 +9,7 @@
         "LOG_LEVEL": "INFO",
         "MESSAGE_DELAY": 1.5,
         "FAILSAFE_RETRIES": 3,
+        "VANILLA_CHAT_MODE": false,
         "ADMINS": [
             283983554051047425
         ]
