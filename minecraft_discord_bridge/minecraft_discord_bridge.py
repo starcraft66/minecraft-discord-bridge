@@ -784,47 +784,60 @@ class MinecraftDiscordBridge():
 
     def handle_chat(self, chat_packet):
         json_data = json.loads(chat_packet.json_data)
-        if "extra" not in json_data:
-            return
-        chat_string = ""
-        for chat_component in json_data["extra"]:
-            chat_string += chat_component["text"]
-
-        # Handle chat message
-        regexp_match = re.match("<(.*?)> (.*)", chat_string, re.M | re.I)
-        if regexp_match:
-            username = regexp_match.group(1)
-            original_message = regexp_match.group(2)
-            player_uuid = self.mc_username_to_uuid(username)
-            if username.lower() == self.bot_username.lower():
-                # Don't relay our own messages
-                if self.config.es_enabled:
-                    bot_message_match = re.match("<{}> (.*?): (.*)".format(
-                        self.bot_username.lower()), chat_string, re.M | re.I)
-                    if bot_message_match:
-                        self.es_logger.log_chat_message(
-                            uuid=self.mc_username_to_uuid(bot_message_match.group(1)),
-                            display_name=bot_message_match.group(1),
-                            message=bot_message_match.group(2),
-                            message_unformatted=chat_string)
-                        self.es_logger.log_raw_message(
-                            msg_type=chat_packet.Position.name_from_value(chat_packet.position),
-                            message=chat_packet.json_data)
+        username = ""
+        original_message = ""
+        self.logger.debug("Got raw chat message: %s", chat_packet.json_data)
+        if self.config.vanilla_chat_mode:
+            if "translate" in json_data and json_data["translate"] == "chat.type.text":
+                username = json_data["with"][0]["text"]
+                original_message = json_data["with"][1]
+            else:
                 return
-            self.logger.info("Incoming message from minecraft: Username: %s Message: %s", username, original_message)
-            self.logger.debug("msg: %s", repr(original_message))
-            message = self.escape_markdown(self.remove_emoji(original_message.strip().replace(
-                "@", "@\N{zero width space}")))
-            webhook_payload = {
-                'username': username,
-                'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-                'content': '{}'.format(message)
-            }
-            for webhook in self.webhooks:
-                self.req_future_session.post(webhook, json=webhook_payload)
+        else:
+            if "extra" not in json_data:
+                return
+            chat_string = ""
+            for chat_component in json_data["extra"]:
+                chat_string += chat_component["text"]
+
+            # Handle chat message
+            regexp_match = re.match("<(.*?)> (.*)", chat_string, re.M | re.I)
+            if regexp_match:
+                username = regexp_match.group(1)
+                original_message = regexp_match.group(2)
+            else:
+                return
+
+        player_uuid = self.mc_username_to_uuid(username)
+        if username.lower() == self.bot_username.lower():
+            # Don't relay our own messages
             if self.config.es_enabled:
-                self.es_logger.log_chat_message(
-                    uuid=player_uuid, display_name=username, message=original_message, message_unformatted=chat_string)
+                bot_message_match = re.match("<{}> (.*?): (.*)".format(
+                    self.bot_username.lower()), chat_string, re.M | re.I)
+                if bot_message_match:
+                    self.es_logger.log_chat_message(
+                        uuid=self.mc_username_to_uuid(bot_message_match.group(1)),
+                        display_name=bot_message_match.group(1),
+                        message=bot_message_match.group(2),
+                        message_unformatted=chat_string)
+                    self.es_logger.log_raw_message(
+                        msg_type=chat_packet.Position.name_from_value(chat_packet.position),
+                        message=chat_packet.json_data)
+            return
+        self.logger.info("Incoming message from minecraft: Username: %s Message: %s", username, original_message)
+        self.logger.debug("msg: %s", repr(original_message))
+        message = self.escape_markdown(self.remove_emoji(original_message.strip().replace(
+            "@", "@\N{zero width space}")))
+        webhook_payload = {
+            'username': username,
+            'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+            'content': '{}'.format(message)
+        }
+        for webhook in self.webhooks:
+            self.req_future_session.post(webhook, json=webhook_payload)
+        if self.config.es_enabled:
+            self.es_logger.log_chat_message(
+                uuid=player_uuid, display_name=username, message=original_message, message_unformatted=chat_string)
         if self.config.es_enabled:
             self.es_logger.log_raw_message(
                 msg_type=chat_packet.Position.name_from_value(chat_packet.position),
