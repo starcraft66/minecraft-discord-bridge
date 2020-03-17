@@ -37,6 +37,7 @@ class Configuration(object):
                 self.logging_level = self._config["MAIN"]["LOG_LEVEL"]
                 self.message_delay = self._config["MAIN"]["MESSAGE_DELAY"]
                 self.failsafe_retries = self._config["MAIN"]["FAILSAFE_RETRIES"]
+                self.vanilla_chat_mode = self._config["MAIN"]["VANILLA_CHAT_MODE"]
                 self.admin_users = self._config["MAIN"]["ADMINS"]
                 self.auth_ip = self._config["AUTH_SERVER"]["BIND_IP"]
                 self.auth_port = self._config["AUTH_SERVER"]["PORT"]
