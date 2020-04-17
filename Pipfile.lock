@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "3735c8fb667b24454fe9f3fd73821122ee430c500cf058443a33ded8ccc122e4"
+            "sha256": "d536958cc88da6c55dbeec4eae41ac620a5da29408691ba2e1dad0b85b89e5dc"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -227,7 +227,7 @@
         },
         "minecraft": {
             "git": "https://github.com/starcraft66/pyCraft",
-            "ref": "e038d63811fea2458df73ee2d96109eb1278aeec"
+            "ref": "7380bc2c614fc4945f6f573467003022df1c657d"
         },
         "multidict": {
             "hashes": [
