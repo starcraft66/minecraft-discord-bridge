@@ -1,0 +1,6 @@
+.git
+.github
+.tox
+.vscode
+.idea
+__pycache__
