@@ -31,8 +31,12 @@ import string
 import uuid
 import asyncio
 import signal
+import argparse
+
 from threading import Thread
 from datetime import datetime, timedelta, timezone
+
+import _thread
 
 from requests import RequestException
 from minecraft import authentication
@@ -44,8 +48,6 @@ from mcstatus import MinecraftServer
 from bidict import bidict
 from requests_futures.sessions import FuturesSession
 
-import _thread
-
 import minecraft_discord_bridge
 from .database_session import DatabaseSession
 from .elasticsearch_logger import ElasticsearchLogger, ConnectionReason
@@ -54,7 +56,7 @@ from .database import DiscordChannel, AccountLinkToken, DiscordAccount
 
 
 class MinecraftDiscordBridge():
-    def __init__(self):
+    def __init__(self, config_path):
         self.return_code = os.EX_OK
         self.session_token = ""
         self.uuid_cache = bidict()
@@ -69,8 +71,8 @@ class MinecraftDiscordBridge():
         self.tab_footer = ""
         # Initialize the discord part
         self.discord_bot = discord.Client()
-        self.config = Configuration("config.json")
         self.connection_retries = 0
+        self.config = Configuration(config_path)
         self.auth_token = None
         self.connection = None
         self.setup_logging(self.config.logging_level)
@@ -535,7 +537,7 @@ class MinecraftDiscordBridge():
                 self.logger.error(ex, exc_info=True)
                 self.logger.error("Failed to lookup %s's username using the Mojang API.", mc_uuid)
         else:
-            return self.uuid_cache[mc_uuid]
+            return self.uuid_cache[mc_uuid]  # pylint: disable=E1136
 
     def mc_username_to_uuid(self, username: str):
         if username not in self.uuid_cache.inv:
@@ -857,9 +859,13 @@ def handle_sigterm(*args, **kwargs):
 
 def main():
     signal.signal(signal.SIGTERM, handle_sigterm)
-    bridge = MinecraftDiscordBridge()
+    parser = argparse.ArgumentParser(description="Bridge Minecraft and Discord chat")
+    parser.add_argument("config", metavar="f", help="Path to the configuration file", default="config.json", nargs="?")
+    args = parser.parse_args()
+    bridge = MinecraftDiscordBridge(args.config)
     return_code = bridge.run()
     sys.exit(return_code)
+    bridge.run()
 
 
 if __name__ == "__main__":
