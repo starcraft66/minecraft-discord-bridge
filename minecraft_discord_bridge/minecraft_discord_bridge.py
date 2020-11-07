@@ -860,9 +860,9 @@ def handle_sigterm(*args, **kwargs):
 def main():
     signal.signal(signal.SIGTERM, handle_sigterm)
     parser = argparse.ArgumentParser(description="Bridge Minecraft and Discord chat")
-    parser.add_argument("config", metavar="f", help="Path to the configuration file", default="config.json", nargs="?")
+    parser.add_argument("--config-file", "-f", help="Path to the configuration file", default="config.json", nargs="?")
     args = parser.parse_args()
-    bridge = MinecraftDiscordBridge(args.config)
+    bridge = MinecraftDiscordBridge(args.config_file)
     return_code = bridge.run()
     sys.exit(return_code)
     bridge.run()
