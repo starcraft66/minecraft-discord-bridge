@@ -36,6 +36,8 @@ import argparse
 from threading import Thread
 from datetime import datetime, timedelta, timezone
 
+import _thread
+
 from requests import RequestException
 from minecraft import authentication
 from minecraft.exceptions import YggdrasilError
@@ -45,8 +47,6 @@ import discord
 from mcstatus import MinecraftServer
 from bidict import bidict
 from requests_futures.sessions import FuturesSession
-
-import _thread
 
 import minecraft_discord_bridge
 from .database_session import DatabaseSession
@@ -537,7 +537,7 @@ class MinecraftDiscordBridge():
                 self.logger.error(ex, exc_info=True)
                 self.logger.error("Failed to lookup %s's username using the Mojang API.", mc_uuid)
         else:
-            return self.uuid_cache[mc_uuid]
+            return self.uuid_cache[mc_uuid]  # pylint: disable=E1136
 
     def mc_username_to_uuid(self, username: str):
         if username not in self.uuid_cache.inv:
@@ -865,7 +865,7 @@ def main():
     bridge = MinecraftDiscordBridge(args.config)
     return_code = bridge.run()
     sys.exit(return_code)
-    bridge.run();
+    bridge.run()
 
 
 if __name__ == "__main__":
