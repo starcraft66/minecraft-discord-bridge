@@ -685,9 +685,9 @@ class MinecraftDiscordBridge():
                 try:
                     new_auth_token.authenticate(*self.credentials)
                     self.connection.auth_token = new_auth_token
-                except YggdrasilError as ye:
+                except YggdrasilError as yggdrasil_err:
                     self.logger.error("Error while re-authenticating with Mojang.")
-                    self.logger.error(ye)
+                    self.logger.error(yggdrasil_err)
                 self.logger.info('Reconnecting.')
                 self.connection.connect()
                 return
