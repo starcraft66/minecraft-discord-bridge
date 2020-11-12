@@ -74,6 +74,21 @@ This step can be achieved in a variety of ways but I will cover basic steps for 
 ## Configuration
 All of the configuration data is stored in a file called `config.json` that must be stored in the same directory as the executable
 
+## Local development environment
+To facilitate development, a docker-based local development environment that spins up a minecraft server and a copy of the bridge from local repository source code is provided.
+
+To use it, simply copy `config.development.example.json` to `config.development.json` and fill in your discord application token and/or change any other relevant settings, then run `./scripts/development-environment.sh`.
+
+A local offline-mode minecraft server and bridge will be started up and connect automatically. You can then connect a local minecraft client to the server by connecting to `localhost:25565`.
+
+The authenication server is also reachable at `localhost:9822` with the dns wildcard `localhost4.tdude.co` because I configured `*.localhost4.tdude.co` to resolve to `127.0.0.1`.
+
+Additionally, the python code running inside the container can be remotely debugged in compatible IDEs via a server speaking the Debug Adapter Protocol available at `localhost:5678`.
+
+**Note:** Since the development minecraft server runs in offline mode, UUIDs of players will differ from their real UUID returned by the Mojang API and this may cause exceptions related to the UUID cache. This is currently a known issue and may be fixed in the future.
+
+The development docker image can be rebuilt by running `./scripts/development-environment.sh -r` if python dependencies need to be changed or for any other reason.
+
 #### Json keys
 |Key                        |Default value              |Explanation|
 |:--------------------------|:--------------------------|:----------|
@@ -88,7 +103,7 @@ All of the configuration data is stored in a file called `config.json` that must
 |MAIN.FAILSAFE_RETRIES      |3                          |The amount of times to try reconnecting to an online server before giving up and exiting.
 |MAIN.VANILLA_CHAT_MODE     |false                      |Whether to parse chat using the vanilla server chat format or not (required on vanilla servers)
 |MAIN.ADMINS                |\[283983554051047425\]     |Array of discord user ids that have administrative access to the bot
-|AUTH_SERVER.BIND.IP        |""                         |The IPv4 address which the authentication server will bind to (set to blank for 0.0.0.0)
+|AUTH_SERVER.BIND_IP        |""                         |The IPv4 address which the authentication server will bind to (set to blank for 0.0.0.0)
 |AUTH_SERVER.PORT           |9822                       |The port which the authentication server will bind to
 |AUTH_SERVER.DNS_WILDCARD   |""                         |Must be set to a wildcard DNS `CNAME` record that points to an `A` record pointing to the authentication server's IP address
 |DATABASE.CONNECTION_STRING |"sqlite:////data/db.sqlite"|Must be set to any valid `SQLAlchemy` connection string. Defaults to an empty sqlite database in `/data` for docker users
@@ -97,3 +112,6 @@ All of the configuration data is stored in a file called `config.json` that must
 |ELASTICSEARCH.AUTH         |false                      |Whether or not the elasticsearch http endpoint is protected by HTTP Basic authentication
 |ELASTICSEARCH.USERNAME     |""                         |HTTP Basic authentication username for elasticsearch
 |ELASTICSEARCH.PASSWORD     |""                         |HTTP Basic authentication password for elasticsearch
+|DEBUGGING.ENABLED          |false                      |Whether or not to enable remote python debugging
+|DEBUGGING.BIND_IP          |"0.0.0.0"                  |The IP address which the remote debugging server will bind to
+|DEBUGGING.PORT             |5678                       |The port which the remote debugging server will bind to

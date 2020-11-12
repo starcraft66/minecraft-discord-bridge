@@ -1,4 +1,5 @@
 config.json
+config.development.json
 db.sqlite
 
 # Byte-compiled / optimized / DLL files

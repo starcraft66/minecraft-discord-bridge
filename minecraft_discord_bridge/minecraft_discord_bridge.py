@@ -44,6 +44,7 @@ from minecraft.exceptions import YggdrasilError
 from minecraft.networking.connection import Connection
 from minecraft.networking.packets import clientbound, serverbound
 import discord
+import debugpy
 from mcstatus import MinecraftServer
 from bidict import bidict
 from requests_futures.sessions import FuturesSession
@@ -57,6 +58,9 @@ from .database import DiscordChannel, AccountLinkToken, DiscordAccount
 
 class MinecraftDiscordBridge():
     def __init__(self, config_path):
+        self.config = Configuration(config_path)
+        if self.config.debugging_enabled:
+            debugpy.listen((self.config.debugging_ip, self.config.debugging_port))
         self.return_code = os.EX_OK
         self.session_token = ""
         self.uuid_cache = bidict()
@@ -72,7 +76,6 @@ class MinecraftDiscordBridge():
         # Initialize the discord part
         self.discord_bot = discord.Client()
         self.connection_retries = 0
-        self.config = Configuration(config_path)
         self.auth_token = None
         self.connection = None
         self.setup_logging(self.config.logging_level)
@@ -481,7 +484,7 @@ class MinecraftDiscordBridge():
             self.bot_username = self.config.mc_username
             self.connection = Connection(
                 self.config.mc_server, self.config.mc_port, username=self.config.mc_username,
-                handle_exception=self.minecraft_handle_exception)
+                handle_exception=self.minecraft_handle_exception, disconnect_on_exception=False)
         else:
             self.auth_token = authentication.AuthenticationToken()
             try:
@@ -496,7 +499,7 @@ class MinecraftDiscordBridge():
                 time.sleep(15)
             self.connection = Connection(
                 self.config.mc_server, self.config.mc_port, auth_token=self.auth_token,
-                handle_exception=self.minecraft_handle_exception)
+                handle_exception=self.minecraft_handle_exception, disconnect_on_exception=False)
 
         self.register_handlers(self.connection)
         self.connection_retries += 1
@@ -659,9 +662,8 @@ class MinecraftDiscordBridge():
         self.accept_join_events = False
         self.player_list = bidict()
         if self.connection.connected:
-            self.logger.info("Forced a disconnection because the connection is still connected.")
             self.connection.disconnect(immediate=True)
-        time.sleep(15)
+        time.sleep(3)
         while not self.is_server_online():
             self.logger.info('Not reconnecting to server because it appears to be offline.')
             time.sleep(15)

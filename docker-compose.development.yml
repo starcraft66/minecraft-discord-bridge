@@ -1,9 +1,24 @@
 version: '2.3'
 services:
+  minecraft-server:
+    image: itzg/minecraft-server
+    restart: unless-stopped
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      ONLINE_MODE: "false"
+      TYPE: "PAPER"
+
   webhook-bridge:
-    build: .
+    build:
+      context: .
+    image: starcraft66/minecraft-discord-bridge:development
+    restart: unless-stopped
+    command: python -m pipenv run python -m minecraft_discord_bridge -f config.development.json
     ports:
       - 9822:9822
+      - 5678:5678
     volumes:
       - ./:/app:Z
       - ./:/data:Z

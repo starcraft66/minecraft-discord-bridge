@@ -10,6 +10,7 @@ tox = "*"
 setuptools = "*"
 
 [packages]
+debugpy = "*"
 requests = "*"
 cryptography = "*"
 future = "*"
@@ -18,5 +19,5 @@ mcstatus = "*"
 quarry = "*"
 discord = {py = "*"}
 bidict = "*"
-minecraft = {git = "https://github.com/ammaraskar/pyCraft.git"}
+minecraft = {editable = true, git = "https://github.com/starcraft66/pyCraft.git", ref = "master"}
 requests-futures = "*"
