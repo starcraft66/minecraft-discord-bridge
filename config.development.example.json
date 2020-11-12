@@ -1,0 +1,37 @@
+{
+    "MAIN": {
+        "MC_USERNAME": "Bridge",
+        "MC_PASSWORD": "",
+        "MC_SERVER": "minecraft-server",
+        "MC_PORT": 25565,
+        "MC_ONLINE": false,
+        "DISCORD_APP_TOKEN": "",
+        "LOG_LEVEL": "INFO",
+        "MESSAGE_DELAY": 1.5,
+        "FAILSAFE_RETRIES": 3,
+        "VANILLA_CHAT_MODE": false,
+        "ADMINS": [
+            283983554051047425
+        ]
+    },
+    "AUTH_SERVER": {
+        "BIND_IP": "0.0.0.0",
+        "PORT": 9822,
+        "DNS_WILDCARD": "localhost4.tdude.co"
+    },
+    "DATABASE": {
+        "CONNECTION_STRING": "sqlite:////data/db.sqlite?check_same_thread=False"
+    },
+    "ELASTICSEARCH": {
+        "ENABLED": false,
+        "URL": "",
+        "AUTH": true,
+        "USERNAME": "",
+        "PASSWORD": ""
+    },
+    "DEBUGGING": {
+        "ENABLED": true,
+        "BIND_IP": "0.0.0.0",
+        "PORT": 5678
+    }
+}

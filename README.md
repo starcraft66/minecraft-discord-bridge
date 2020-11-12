@@ -74,6 +74,21 @@ This step can be achieved in a variety of ways but I will cover basic steps for 
 ## Configuration
 All of the configuration data is stored in a file called `config.json` that must be stored in the same directory as the executable
 
+## Local development environment
+To facilitate development, a docker-based local development environment that spins up a minecraft server and a copy of the bridge from local repository source code is provided.
+
+To use it, simply copy `config.development.example.json` to `config.development.json` and fill in your discord application token and/or change any other relevant settings, then run `./scripts/development-environment.sh`.
+
+A local offline-mode minecraft server and bridge will be started up and connect automatically. You can then connect a local minecraft client to the server by connecting to `localhost:25565`.
+
+The authenication server is also reachable at `localhost:9822` with the dns wildcard `localhost4.tdude.co` because I configured `*.localhost4.tdude.co` to resolve to `127.0.0.1`.
+
+Additionally, the python code running inside the container can be remotely debugged in compatible IDEs via a server speaking the Debug Adapter Protocol available at `localhost:5678`.
+
+**Note:** Since the development minecraft server runs in offline mode, UUIDs of players will differ from their real UUID returned by the Mojang API and this may cause exceptions related to the UUID cache. This is currently a known issue and may be fixed in the future.
+
+The development docker image can be rebuilt by running `./scripts/development-environment.sh -r` if python dependencies need to be changed or for any other reason.
+
 #### Json keys
 |Key                        |Default value              |Explanation|
 |:--------------------------|:--------------------------|:----------|
