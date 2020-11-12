@@ -61,6 +61,7 @@ class MinecraftDiscordBridge():
         self.config = Configuration(config_path)
         if self.config.debugging_enabled:
             debugpy.listen((self.config.debugging_ip, self.config.debugging_port))
+        self.credentials = (self.config.mc_username, self.config.mc_password)
         self.return_code = os.EX_OK
         self.session_token = ""
         self.uuid_cache = bidict()
@@ -488,7 +489,7 @@ class MinecraftDiscordBridge():
         else:
             self.auth_token = authentication.AuthenticationToken()
             try:
-                self.auth_token.authenticate(self.config.mc_username, self.config.mc_password)
+                self.auth_token.authenticate(*self.credentials)
             except YggdrasilError as ex:
                 self.logger.info(ex)
                 sys.exit(os.EX_TEMPFAIL)
@@ -676,6 +677,20 @@ class MinecraftDiscordBridge():
 
     def minecraft_handle_exception(self, exception, exc_info):
         self.logger.error("A minecraft exception occured! %s:", exception, exc_info=exc_info)
+        if isinstance(exception, YggdrasilError):
+            if (exception.yggdrasil_error == "ForbiddenOperationException" and
+                    exception.yggdrasil_error == "Invalid token"):
+                self.logger.info("Authentication token expired. Re-authenticating with Mojang.")
+                new_auth_token = authentication.AuthenticationToken()
+                try:
+                    new_auth_token.authenticate(*self.credentials)
+                    self.connection.auth_token = new_auth_token
+                except YggdrasilError as yggdrasil_err:
+                    self.logger.error("Error while re-authenticating with Mojang.")
+                    self.logger.error(yggdrasil_err)
+                self.logger.info('Reconnecting.')
+                self.connection.connect()
+                return
         self.handle_disconnect()
 
     def is_server_online(self):
