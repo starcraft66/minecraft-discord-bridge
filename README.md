@@ -97,3 +97,6 @@ All of the configuration data is stored in a file called `config.json` that must
 |ELASTICSEARCH.AUTH         |false                      |Whether or not the elasticsearch http endpoint is protected by HTTP Basic authentication
 |ELASTICSEARCH.USERNAME     |""                         |HTTP Basic authentication username for elasticsearch
 |ELASTICSEARCH.PASSWORD     |""                         |HTTP Basic authentication password for elasticsearch
+|DEBUGGING.ENABLED          |false                      |Whether or not to enable remote python debugging
+|DEBUGGING.BIND_IP          |"0.0.0.0"                  |The IP address which the remote debugging server will bind to
+|DEBUGGING.PORT             |5678                       |The port which the remote debugging server will bind to

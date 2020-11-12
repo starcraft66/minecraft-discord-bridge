@@ -28,5 +28,10 @@
         "AUTH": false,
         "USERNAME": "",
         "PASSWORD": ""
+    },
+    "DEBUGGING": {
+        "ENABLED": false,
+        "BIND_IP": "0.0.0.0",
+        "PORT": 5678
     }
 }

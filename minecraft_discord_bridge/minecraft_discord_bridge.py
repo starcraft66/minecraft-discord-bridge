@@ -44,6 +44,7 @@ from minecraft.exceptions import YggdrasilError
 from minecraft.networking.connection import Connection
 from minecraft.networking.packets import clientbound, serverbound
 import discord
+import debugpy
 from mcstatus import MinecraftServer
 from bidict import bidict
 from requests_futures.sessions import FuturesSession
@@ -57,6 +58,9 @@ from .database import DiscordChannel, AccountLinkToken, DiscordAccount
 
 class MinecraftDiscordBridge():
     def __init__(self, config_path):
+        self.config = Configuration(config_path)
+        if self.config.debugging_enabled:
+            debugpy.listen((self.config.debugging_ip, self.config.debugging_port))
         self.return_code = os.EX_OK
         self.session_token = ""
         self.uuid_cache = bidict()
@@ -72,7 +76,6 @@ class MinecraftDiscordBridge():
         # Initialize the discord part
         self.discord_bot = discord.Client()
         self.connection_retries = 0
-        self.config = Configuration(config_path)
         self.auth_token = None
         self.connection = None
         self.setup_logging(self.config.logging_level)

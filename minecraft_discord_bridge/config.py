@@ -48,6 +48,9 @@ class Configuration(object):
                 self.es_auth = self._config["ELASTICSEARCH"]["AUTH"]
                 self.es_username = self._config["ELASTICSEARCH"]["USERNAME"]
                 self.es_password = self._config["ELASTICSEARCH"]["PASSWORD"]
+                self.debugging_enabled = self._config["DEBUGGING"]["ENABLED"]
+                self.debugging_ip = self._config["DEBUGGING"]["BIND_IP"]
+                self.debugging_port = self._config["DEBUGGING"]["PORT"]
             else:
                 self.logger.error("error reading config")
                 exit(1)
