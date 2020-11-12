@@ -103,7 +103,7 @@ The development docker image can be rebuilt by running `./scripts/development-en
 |MAIN.FAILSAFE_RETRIES      |3                          |The amount of times to try reconnecting to an online server before giving up and exiting.
 |MAIN.VANILLA_CHAT_MODE     |false                      |Whether to parse chat using the vanilla server chat format or not (required on vanilla servers)
 |MAIN.ADMINS                |\[283983554051047425\]     |Array of discord user ids that have administrative access to the bot
-|AUTH_SERVER.BIND.IP        |""                         |The IPv4 address which the authentication server will bind to (set to blank for 0.0.0.0)
+|AUTH_SERVER.BIND_IP        |""                         |The IPv4 address which the authentication server will bind to (set to blank for 0.0.0.0)
 |AUTH_SERVER.PORT           |9822                       |The port which the authentication server will bind to
 |AUTH_SERVER.DNS_WILDCARD   |""                         |Must be set to a wildcard DNS `CNAME` record that points to an `A` record pointing to the authentication server's IP address
 |DATABASE.CONNECTION_STRING |"sqlite:////data/db.sqlite"|Must be set to any valid `SQLAlchemy` connection string. Defaults to an empty sqlite database in `/data` for docker users
