@@ -1,7 +1,7 @@
 version: '2.3'
 services:
   minecraft-server:
-    image: itzg/minecraft-server
+    image: itzg/minecraft-server:adopt11
     restart: unless-stopped
     ports:
       - "25565:25565"
