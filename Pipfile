@@ -19,5 +19,5 @@ mcstatus = "*"
 quarry = "*"
 discord = {py = "*"}
 bidict = "*"
-minecraft = {editable = true, git = "https://github.com/starcraft66/pyCraft.git", ref = "master"}
+pyCraft = {editable = true, git = "https://github.com/ammaraskar/pyCraft.git", ref = "master"}
 requests-futures = "*"

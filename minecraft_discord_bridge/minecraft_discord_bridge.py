@@ -485,7 +485,7 @@ class MinecraftDiscordBridge():
             self.bot_username = self.config.mc_username
             self.connection = Connection(
                 self.config.mc_server, self.config.mc_port, username=self.config.mc_username,
-                handle_exception=self.minecraft_handle_exception, disconnect_on_exception=False)
+                handle_exception=self.minecraft_handle_exception)
         else:
             self.auth_token = authentication.AuthenticationToken()
             try:
@@ -500,7 +500,7 @@ class MinecraftDiscordBridge():
                 time.sleep(15)
             self.connection = Connection(
                 self.config.mc_server, self.config.mc_port, auth_token=self.auth_token,
-                handle_exception=self.minecraft_handle_exception, disconnect_on_exception=False)
+                handle_exception=self.minecraft_handle_exception)
 
         self.register_handlers(self.connection)
         self.connection_retries += 1
