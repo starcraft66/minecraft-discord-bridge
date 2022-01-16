@@ -153,7 +153,7 @@ class MinecraftDiscordBridge():
                     return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
-                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        msg = f"{message.author.mention}, please allow private messages from this bot."
                         error_msg = await message.channel.send(msg)
                         await asyncio.sleep(3)
                         await error_msg.delete()
@@ -181,15 +181,16 @@ class MinecraftDiscordBridge():
                     discord_account.link_token = account_link_token
                     session.add(account_link_token)
                     session.commit()
-                    msg = "Please connect your minecraft account to `{}.{}:{}` in order to link it to this bridge!"\
-                        .format(new_token, self.config.auth_dns, self.config.auth_port)
+                    msg = f"Please connect your minecraft account to " \
+                          f"`{new_token}.{self.config.auth_dns}:{self.config.auth_port}`" \
+                          "in order to link it to this bridge!"
                     session.close()
                     del session
                     await send_channel.send(msg)
                     return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
-                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        msg = f"{message.author.mention}, please allow private messages from this bot."
                         error_msg = await message.channel.send(msg)
                         await asyncio.sleep(3)
                         await error_msg.delete()
@@ -213,7 +214,7 @@ class MinecraftDiscordBridge():
                         return
                     except discord.errors.Forbidden:
                         if isinstance(message.author, discord.abc.User):
-                            msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                            msg = f"{message.author.mention}, please allow private messages from this bot."
                             error_msg = await message.channel.send(msg)
                             await asyncio.sleep(3)
                             await error_msg.delete()
@@ -252,7 +253,7 @@ class MinecraftDiscordBridge():
                         return
                     except discord.errors.Forbidden:
                         if isinstance(message.author, discord.abc.User):
-                            msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                            msg = f"{message.author.mention}, please allow private messages from this bot."
                             error_msg = await message.channel.send(msg)
                             await asyncio.sleep(3)
                             await error_msg.delete()
@@ -288,17 +289,14 @@ class MinecraftDiscordBridge():
                             await message.author.create_dm()
                         send_channel = message.author.dm_channel
                     player_list = ", ".join(list(map(lambda x: x[1], self.player_list.items())))
-                    msg = "{}\n" \
-                        "Players online: {}\n" \
-                        "{}".format(self.escape_markdown(
-                            self.strip_colour(self.tab_header)), self.escape_markdown(
-                                self.strip_colour(player_list)), self.escape_markdown(
-                                    self.strip_colour(self.tab_footer)))
+                    msg = f"{self.escape_markdown(self.strip_colour(self.tab_header))}\n" \
+                        f"Players online: {self.escape_markdown(self.strip_colour(player_list))}\n" \
+                        f"{self.escape_markdown(self.strip_colour(self.tab_footer))}"
                     await send_channel.send(msg)
                     return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
-                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        msg = f"{message.author.mention}, please allow private messages from this bot."
                         error_msg = await message.channel.send(msg)
                         await asyncio.sleep(3)
                         await error_msg.delete()
@@ -313,13 +311,13 @@ class MinecraftDiscordBridge():
                         if not dm_channel:
                             await message.author.create_dm()
                         send_channel = message.author.dm_channel
-                    msg = "Use the following link to invite this bot to a guild:\n{}".format(discord.utils.oauth_url(
-                        client_id=self.discord_bot.user.id, permissions=self.bot_perms))
+                    msg = "Use the following link to invite this bot to a guild:\n" \
+                          f"{discord.utils.oauth_url(client_id=self.discord_bot.user.id, permissions=self.bot_perms)}"
                     await send_channel.send(msg)
                     return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
-                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        msg = "{message.author.mention}, please allow private messages from this bot."
                         error_msg = await message.channel.send(msg)
                         await asyncio.sleep(3)
                         await error_msg.delete()
@@ -334,14 +332,14 @@ class MinecraftDiscordBridge():
                         if not dm_channel:
                             await message.author.create_dm()
                         send_channel = message.author.dm_channel
-                    msg = "This bot is running minecraft-discord-bridge version {}.\n" \
-                          "The source code is available at https://github.com/starcraft66/minecraft-discord-bridge" \
-                        .format(minecraft_discord_bridge.__version__)
+                    msg = f"This bot is running minecraft-discord-bridge version  " \
+                          f"{minecraft_discord_bridge.__version__}.\n" \
+                          "The source code is available at https://github.com/starcraft66/minecraft-discord-bridge"
                     await send_channel.send(msg)
                     return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
-                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        msg = f"{message.author.mention}, please allow private messages from this bot."
                         error_msg = await message.channel.send(msg)
                         await asyncio.sleep(3)
                         await error_msg.delete()
@@ -362,7 +360,7 @@ class MinecraftDiscordBridge():
                     return
                 except discord.errors.Forbidden:
                     if isinstance(message.author, discord.abc.User):
-                        msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                        msg = f"{message.author.mention}, please allow private messages from this bot."
                         error_msg = await message.channel.send(msg)
                         await asyncio.sleep(3)
                         await error_msg.delete()
@@ -410,13 +408,12 @@ class MinecraftDiscordBridge():
                                         if not dm_channel:
                                             await message.author.create_dm()
                                         send_channel = message.author.dm_channel
-                                    msg = "Your message \"{}\" has been rate-limited.".format(message.clean_content)
+                                    msg = f"Your message \"{message.clean_content}\" has been rate-limited."
                                     await send_channel.send(msg)
                                     return
                                 except discord.errors.Forbidden:
                                     if isinstance(message.author, discord.abc.User):
-                                        msg = "{}, please allow private messages from this bot.".format(
-                                            message.author.mention)
+                                        msg = f"{message.author.mention}, please allow private messages from this bot."
                                         error_msg = await message.channel.send(msg)
                                         await asyncio.sleep(3)
                                         await error_msg.delete()
@@ -441,12 +438,11 @@ class MinecraftDiscordBridge():
                                     if webhook.name == "_minecraft":
                                         await webhook.send(
                                             username=minecraft_username,
-                                            avatar_url="https://visage.surgeplay.com/face/160/{}".format(
-                                                minecraft_uuid),
+                                            avatar_url=f"https://visage.surgeplay.com/face/160/{minecraft_uuid}",
                                             content=message_to_discord)
 
                             packet = serverbound.play.ChatPacket()
-                            packet.message = "{}: {}".format(minecraft_username, message_to_send)
+                            packet.message = f"{minecraft_username}: {message_to_send}"
                             self.connection.write_packet(packet)
                     else:
                         send_channel = message.channel
@@ -462,7 +458,7 @@ class MinecraftDiscordBridge():
                             return
                         except discord.errors.Forbidden:
                             if isinstance(message.author, discord.abc.User):
-                                msg = "{}, please allow private messages from this bot.".format(message.author.mention)
+                                msg = f"{message.author.mention}, please allow private messages from this bot."
                                 error_msg = await message.channel.send(msg)
                                 await asyncio.sleep(3)
                                 await error_msg.delete()
@@ -527,8 +523,8 @@ class MinecraftDiscordBridge():
         if mc_uuid not in self.uuid_cache:
             try:
                 short_uuid = mc_uuid.replace("-", "")
-                mojang_response = self.req_future_session.get("https://api.mojang.com/user/profiles/{}/names".format(
-                    short_uuid)).result().json()
+                mojang_response = self.req_future_session.get(
+                    f"https://api.mojang.com/user/profiles/{short_uuid}/names").result().json()
                 if len(mojang_response) > 1:
                     # Multiple name changes
                     player_username = mojang_response[-1]["name"]
@@ -547,7 +543,7 @@ class MinecraftDiscordBridge():
         if username not in self.uuid_cache.inv:
             try:
                 player_uuid = self.req_future_session.get(
-                    "https://api.mojang.com/users/profiles/minecraft/{}".format(username)).result().json()["id"]
+                    f"https://api.mojang.com/users/profiles/minecraft/{username}").result().json()["id"]
                 long_uuid = uuid.UUID(player_uuid)
                 self.uuid_cache.inv[username] = str(long_uuid)
                 return player_uuid
@@ -572,13 +568,13 @@ class MinecraftDiscordBridge():
     def remove_emoji(self, dirty_string):
         emoji_pattern = re.compile(
             "["
-            u"\U0001F600-\U0001F64F"  # emoticons
-            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-            u"\U0001F680-\U0001F6FF"  # transport & map symbols
-            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-            u"\U0001F900-\U0001FAFF"  # CJK Compatibility Ideographs
-            # u"\U00002702-\U000027B0"
-            # u"\U000024C2-\U0001F251"
+            "\U0001F600-\U0001F64F"  # emoticons
+            "\U0001F300-\U0001F5FF"  # symbols & pictographs
+            "\U0001F680-\U0001F6FF"  # transport & map symbols
+            "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            "\U0001F900-\U0001FAFF"  # CJK Compatibility Ideographs
+            # "\U00002702-\U000027B0"
+            # "\U000024C2-\U0001F251"
             "]+", flags=re.UNICODE)
         return emoji_pattern.sub(r'', dirty_string)
 
@@ -599,13 +595,13 @@ class MinecraftDiscordBridge():
         # escape) and what isn't (escape).
         for piece in md_string.split(" "):
             if url_regex.match(piece):
-                escaped_string += "{} ".format(piece)
+                escaped_string += f"{piece} "
                 continue
             # Absolutely needs to go first or it will replace our escaping slashes!
             piece = piece.replace("\\", "\\\\")
             piece = piece.replace("_", "\\_")
             piece = piece.replace("*", "\\*")
-            escaped_string += "{} ".format(piece)
+            escaped_string += f"{piece} "
         if escaped_string.startswith(">"):
             escaped_string = "\\" + escaped_string
         escaped_string.strip()
@@ -613,7 +609,7 @@ class MinecraftDiscordBridge():
 
     def strip_colour(self, dirty_string):
         colour_pattern = re.compile(
-            u"\U000000A7"  # selection symbol
+            "\U000000A7"  # selection symbol
             ".", flags=re.UNICODE)
         return colour_pattern.sub(r'', dirty_string)
 
@@ -694,7 +690,7 @@ class MinecraftDiscordBridge():
         self.handle_disconnect()
 
     def is_server_online(self):
-        server = MinecraftServer.lookup("{}:{}".format(self.config.mc_server, self.config.mc_port))
+        server = MinecraftServer.lookup(f"{self.config.mc_server}:{self.config.mc_port}")
         try:
             status = server.status()
             del status
@@ -750,7 +746,7 @@ class MinecraftDiscordBridge():
                 if self.accept_join_events:
                     webhook_payload = {
                         'username': username,
-                        'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                        'avatar_url': f"https://visage.surgeplay.com/face/160/{player_uuid}",
                         'content': '',
                         'embeds': [{'color': 65280, 'title': '**Joined the game**'}]
                     }
@@ -783,7 +779,7 @@ class MinecraftDiscordBridge():
                 player_uuid = action.uuid
                 webhook_payload = {
                     'username': username,
-                    'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
+                    'avatar_url': f"https://visage.surgeplay.com/face/160/{player_uuid}",
                     'content': '',
                     'embeds': [{'color': 16711680, 'title': '**Left the game**'}]
                 }
@@ -831,8 +827,7 @@ class MinecraftDiscordBridge():
         if username.lower() == self.bot_username.lower():
             # Don't relay our own messages
             if self.config.es_enabled:
-                bot_message_match = re.match("<{}> (.*?): (.*)".format(
-                    self.bot_username.lower()), chat_string, re.M | re.I)
+                bot_message_match = re.match(f"<{self.bot_username.lower()}> (.*?): (.*)", chat_string, re.M | re.I)
                 if bot_message_match:
                     self.es_logger.log_chat_message(
                         uuid=self.mc_username_to_uuid(bot_message_match.group(1)),
@@ -849,8 +844,8 @@ class MinecraftDiscordBridge():
             "@", "@\N{zero width space}")))
         webhook_payload = {
             'username': username,
-            'avatar_url': "https://visage.surgeplay.com/face/160/{}".format(player_uuid),
-            'content': '{}'.format(message)
+            'avatar_url': f"https://visage.surgeplay.com/face/160/{player_uuid}",
+            'content': f'{message}'
         }
         for webhook in self.webhooks:
             self.req_future_session.post(webhook, json=webhook_payload)

@@ -67,7 +67,7 @@ class ElasticsearchLogger():
         self.post_request("raw_messages/_doc/", es_payload)
 
     def post_request(self, endpoint, payload):
-        the_url = "{}{}".format(self.url, endpoint)
+        the_url = f"{self.url}{endpoint}"
         if self.username and self.password:
             future = self.futures_session.post(the_url, auth=(self.username, self.password), json=payload)
         else:
