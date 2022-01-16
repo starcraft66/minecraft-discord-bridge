@@ -25,7 +25,7 @@ class Configuration(object):
     def __init__(self, path):
         self.logger = logging.getLogger("bridge.config")
         try:
-            with open(path, 'r') as file:
+            with open(path, 'r', encoding="utf-8") as file:
                 self._config = json.load(file)
             if self._config:
                 self.mc_username = self._config["MAIN"]["MC_USERNAME"]
